@@ -1,4 +1,4 @@
-use macroquad::prelude::*;
+use macroquad::{miniquad::window::screen_size, prelude::*};
 
 use crate::engine::Message;
 
@@ -6,7 +6,7 @@ mod engine;
 
 #[macroquad::main("silly08")]
 async fn main() {
-    let (handle, rx) = engine::run_thread();
+    let (_handle, rx) = engine::run_thread();
 
     let image_data: [u8; 128 * 128 * 4] = std::array::from_fn(|_| 0);
     let mut image = Image {
@@ -15,6 +15,7 @@ async fn main() {
         height: 128,
     };
     let texture = Texture2D::from_image(&image);
+    texture.set_filter(FilterMode::Nearest);
 
     loop {
         if let Ok(message) = rx.try_recv() {
@@ -29,7 +30,22 @@ async fn main() {
                 }
             }
         }
-        draw_texture(&texture, 0.0, 0.0, WHITE);
+        let (mut w, mut h) = screen_size();
+        let scale = screen_dpi_scale();
+        w /= scale;
+        h /= scale;
+        let scale_factor = (w / 128.0).min(h / 128.0);
+
+        draw_texture_ex(
+            &texture,
+            0.0,
+            0.0,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(Vec2::new(128.0 * scale_factor, 128.0 * scale_factor)),
+                ..Default::default()
+            },
+        );
         next_frame().await
     }
 }
