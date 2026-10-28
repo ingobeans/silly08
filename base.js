@@ -68,7 +68,7 @@ var KeyboardEvent = constructProxy("KeyboardEvent", {
     DOM_KEY_LOCATION_RIGHT: 2
 });
 
-var tempDouble, tempI64, el, codo_key_buffer, codo_mounted_filesystem, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
+var tempDouble, tempI64, _dir_name, el, codo_key_buffer, codo_mounted_filesystem, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
 
 let keyEventListeners = {
     keydown: [],
@@ -80,11 +80,23 @@ function addEventListener(event, callback) {
         keyEventListeners[event].push(callback);
     }
 }
-function toKeyboardEvent(char, shift) {
+
+let shift = false;
+function toKeyboardEvent(char) {
     let keyCode = char == "Escape" ? 27 : undefined;
     if (char == "Space") {
         char = " ";
     }
+
+    // todo: replace hardcoded swedish keyboard layout
+    // (teporary fix)
+    let asInt = parseInt(char);
+    if (asInt || asInt == 0) {
+        if (shift) {
+            char = "=!\"#¤%&/()"[asInt];
+        }
+    }
+
     return constructProxy("char", {
         key: char,
         code: char,
@@ -105,6 +117,7 @@ function sendEvents(targets, keys) {
 globalThis.setTimeout = function (callback, time) {
     timeout(time).then(([pressedKeys, heldKeys]) => {
         if (time != 0) {
+            shift = heldKeys.includes("LeftShift");
             if (pressedKeys.length > 0) {
                 // console.log("Keys: " + pressedKeys);
             }
