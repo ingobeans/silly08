@@ -32,13 +32,21 @@ async fn main() {
         }
         let mut held = Vec::new();
         for key in get_keys_down() {
-            held.push(format!("{:?}", key).to_lowercase());
+            let mut key = format!("{:?}", key);
+            if key.len() == 1 {
+                key = key.to_lowercase();
+            }
+            held.push(key);
         }
         *HELD_KEYS.lock().unwrap() = held;
 
         let mut pressed = Vec::new();
         for key in get_keys_pressed() {
-            pressed.push(format!("{:?}", key).to_lowercase());
+            let mut key = format!("{:?}", key);
+            if key.len() == 1 {
+                key = key.to_lowercase();
+            }
+            pressed.push(key);
         }
         *PRESSED_KEYS.lock().unwrap() = pressed;
 
