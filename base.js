@@ -1,3 +1,5 @@
+import { test } from "ext:core/ops";
+
 function constructProxy(name, items) {
     return new Proxy(items, {
         get(target, property) {
@@ -6,6 +8,8 @@ function constructProxy(name, items) {
         }
     })
 }
+
+console.log(test());
 
 var DBOpenRequest = constructProxy("DBOpenRequest", {
 

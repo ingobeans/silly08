@@ -1,9 +1,21 @@
+use deno_core::error::AnyError;
+use deno_core::extension;
+use deno_core::op2;
 use std::rc::Rc;
 
+#[op2(fast)]
+fn test() -> f64 {
+    println!("EHBGEF");
+    4.5
+}
+
+extension!(my_ext, ops = [test]);
+
 async fn run_js() {
-    let main_module = deno_core::resolve_path("edu.js", &std::env::current_dir().unwrap()).unwrap();
+    let main_module = deno_core::url::Url::parse("node:edu.js").unwrap();
     let mut js_runtime = deno_core::JsRuntime::new(deno_core::RuntimeOptions {
         module_loader: Some(Rc::new(deno_core::FsModuleLoader)),
+        extensions: vec![my_ext::init()],
         ..Default::default()
     });
 
