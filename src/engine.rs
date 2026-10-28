@@ -1,7 +1,6 @@
 use deno_core::error::AnyError;
 use deno_core::extension;
 use deno_core::op2;
-use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::sync::OnceLock;
