@@ -6,7 +6,7 @@ mod engine;
 
 #[macroquad::main("silly08")]
 async fn main() {
-    let (_handle, rx) = engine::run_thread();
+    let (handle, rx) = engine::run_thread();
 
     let image_data: [u8; 128 * 128 * 4] = std::array::from_fn(|_| 0);
     let mut image = Image {
@@ -32,6 +32,12 @@ async fn main() {
                 }
             }
         }
+
+        if handle.is_finished() {
+            let err = handle.join().unwrap().unwrap_err();
+            panic!("{err:?}");
+        }
+
         let mut held = Vec::new();
         for key in get_keys_down() {
             let mut key = format!("{:?}", key);
