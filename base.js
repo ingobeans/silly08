@@ -1,4 +1,4 @@
-import { test } from "ext:core/ops";
+import { test, send_data } from "ext:core/ops";
 
 function constructProxy(name, items) {
     return new Proxy(items, {
@@ -10,6 +10,11 @@ function constructProxy(name, items) {
 }
 
 console.log(test());
+let dataa = new Uint8Array([1, 2, 3]);
+console.log(typeof dataa + "-" + dataa);
+send_data(dataa);
+console.log("test()");
+while (true) { }
 
 var DBOpenRequest = constructProxy("DBOpenRequest", {
 
@@ -27,7 +32,7 @@ var indexedDB = constructProxy("indexedDB", {
 });
 
 var ImageData = constructProxy("ImageData", {
-    data: new Uint8ClampedArray(128 * 128 * 4)
+    data: new Uint8Array(128 * 128 * 4)
 });
 
 var context = constructProxy("context", {
