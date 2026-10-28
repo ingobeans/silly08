@@ -9,13 +9,6 @@ function constructProxy(name, items) {
     })
 }
 
-console.log(test());
-let dataa = new Uint8Array([1, 2, 3]);
-console.log(typeof dataa + "-" + dataa);
-send_data(dataa);
-console.log("test()");
-while (true) { }
-
 var DBOpenRequest = constructProxy("DBOpenRequest", {
 
 });
@@ -41,6 +34,8 @@ var context = constructProxy("context", {
     },
     putImageData: (imageData, dx, dy, dirtyX, dirtyY, dirtyWidth, dirtyHeight) => {
         console.log("imageData", dx, dy, dirtyX, dirtyY, dirtyWidth, dirtyHeight);
+        let a = new Uint8Array(imageData.data.buffer, imageData.data.byteOffset, imageData.data.length);
+        send_data(a);
     }
 });
 
