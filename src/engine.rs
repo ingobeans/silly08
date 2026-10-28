@@ -1,3 +1,4 @@
+use base64::prelude::*;
 use deno_core::error::AnyError;
 use deno_core::extension;
 use deno_core::op2;
@@ -53,9 +54,13 @@ async fn run() -> Result<(), AnyError> {
         ..Default::default()
     });
 
+    let cart = format!(
+        "let sample = `data:application/pkcs8;base64,{}`;",
+        BASE64_STANDARD.encode(include_bytes!("../btd64.p8"))
+    );
     let base = std::fs::read_to_string("base.js")?;
     let file = std::fs::read_to_string("edu.js")?;
-    let code = base + &file;
+    let code = format!("{cart}\n{base}\n{file}");
 
     let a = js_runtime
         .load_side_es_module_from_code(

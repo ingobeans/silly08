@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+base64 = "0.23.1"
 deno_core = "0.413.0"
 macroquad = "0.4.16"
 tokio = { version = "1.54.1", features = ["full"] }

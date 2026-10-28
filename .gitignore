@@ -1,5 +1,6 @@
 edu.js
 fake-indexeddb.js
+btd64.p8
 
 /target
 /node_modules

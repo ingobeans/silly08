@@ -54,11 +54,30 @@ var activeElement = constructProxy("activeElement", {
 var document = constructProxy("document", {
     addEventListener: addEventListener,
     getElementById: (id) => {
+        if (id == "p8_file_chooser") {
+            return {
+                click: () => {
+
+                    p8_dropped_cart = sample;
+                    p8_dropped_cart_name = "wah.p8";
+                    codo_command = 9;
+                    // p8_drop_file(constructProxy("FILE OBJECT", {}, true))
+                }
+            }
+        }
         return null;
     },
     activeElement: activeElement,
     currentScript: null,
 });
+
+class XMLHttpRequest {
+    open() { }
+    send() { this.onload() }
+    status = 200;
+    response = null;
+}
+
 var window = constructProxy("window", {
     addEventListener: addEventListener,
     location: Location,
@@ -72,7 +91,12 @@ function download_browser_file(...a) {
     console.log("SAVE: " + a);
 }
 
-var tempDouble, tempI64, _dir_name, el, codo_key_buffer, codo_mounted_filesystem, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
+var tempDouble, tempI64, jsString, codo_command, p8_dropped_cart, p8_dropped_cart_name, _dir_name, el, codo_key_buffer, codo_mounted_filesystem, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
+
+
+p8_dropped_cart = sample;
+p8_dropped_cart_name = "wah.p8";
+codo_command = 9;
 
 let keyEventListeners = {
     keydown: [],
@@ -153,6 +177,9 @@ globalThis.setTimeout = function (callback, time) {
             }
             sendEvents(keyEventListeners.keydown, pressedKeys);
             // sendEvents(keyEventListeners.keydown,heldKeys);
+            if (pressedKeys.includes("RightShift")) {
+                console.log(codo_command);
+            }
         }
         callback();
     });
