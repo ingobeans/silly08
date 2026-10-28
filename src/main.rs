@@ -36,6 +36,9 @@ async fn main() {
             if key.len() == 1 {
                 key = key.to_lowercase();
             }
+            if key.starts_with("Key") {
+                key = key[3..].to_string();
+            }
             held.push(key);
         }
         *HELD_KEYS.lock().unwrap() = held;
@@ -45,6 +48,9 @@ async fn main() {
             let mut key = format!("{:?}", key);
             if key.len() == 1 {
                 key = key.to_lowercase();
+            }
+            if key.starts_with("Key") {
+                key = key[3..].to_string();
             }
             pressed.push(key);
         }

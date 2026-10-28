@@ -61,7 +61,9 @@ var window = constructProxy("window", {
     location: Location,
 });
 
-var KeyboardEvent = constructProxy("KeyboardEvent", {});
+var KeyboardEvent = constructProxy("KeyboardEvent", {
+    DOM_KEY_LOCATION_RIGHT: 2
+});
 
 var tempDouble, tempI64, el, codo_key_buffer, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
 
@@ -75,10 +77,13 @@ function addEventListener(event, callback) {
         keyEventListeners[event].push(callback);
     }
 }
-function toKeyboardEvent(char) {
+function toKeyboardEvent(char, shift) {
+    let keyCode = char == "Escape" ? 27 : undefined;
     return constructProxy("char", {
         key: char,
+        code: char,
         type: "keydown",
+        keyCode: keyCode,
     });
 }
 
@@ -93,7 +98,9 @@ function sendEvents(targets, keys) {
 
 function setTimeout(callback, time) {
     timeout(time).then(([pressedKeys, heldKeys]) => {
-        console.log("RHFHEGHFGEHF:" + pressedKeys + "-" + heldKeys);
+        if (pressedKeys.length > 0) {
+            console.log("Keys: " + pressedKeys);
+        }
         sendEvents(keyEventListeners.keydown, pressedKeys);
         // sendEvents(keyEventListeners.keydown,heldKeys);
         callback();
