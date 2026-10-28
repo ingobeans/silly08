@@ -3,7 +3,7 @@ import { send_data, timeout } from "ext:core/ops";
 function constructProxy(name, items) {
     return new Proxy(items, {
         get(target, property) {
-            console.log("[PROXY]: " + name + " : " + property);
+            //console.log("[PROXY]: " + name + " : " + property);
             return property in target ? target[property] : undefined;
         }
     })
@@ -38,7 +38,7 @@ var context = constructProxy("context", {
 });
 
 var canvas = constructProxy("canvas", {
-    addEventListener: () => { },
+    addEventListener: addEventListener,
     getContext: () => { return context },
 });
 
@@ -50,22 +50,34 @@ var activeElement = constructProxy("activeElement", {
     tagName: "html",
 });
 var document = constructProxy("document", {
-    addEventListener: () => { },
+    addEventListener: addEventListener,
     getElementById: (id) => {
-        console.log("WA: " + id);
         return null;
     },
     activeElement: activeElement,
     currentScript: null,
 });
 var window = constructProxy("window", {
-    addEventListener: () => { console.log("addEventListener") },
+    addEventListener: addEventListener,
     location: Location,
 });
 
 var tempDouble, tempI64, el, codo_key_buffer, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
 
-function addEventListener() { }
+let keyEventListeners = {
+    keydown: [],
+    keyup: [],
+    focus: [],
+}
+
+function addEventListener(event, callback) {
+    if (event in keyEventListeners) {
+        keyEventListeners[event].push(callback);
+    }
+}
 function setTimeout(callback, time) {
-    timeout(time).then(callback);
+    timeout(time).then((keyEvents) => {
+        console.log("RHFHEGHFGEHF" + keyEvents);
+        callback();
+    });
 }

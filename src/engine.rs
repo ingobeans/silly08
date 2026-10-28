@@ -2,6 +2,7 @@ use deno_core::error::AnyError;
 use deno_core::extension;
 use deno_core::op2;
 use std::rc::Rc;
+use std::sync::Mutex;
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -16,11 +17,18 @@ fn send_data(#[buffer(copy)] data: Vec<u8>) {
     MESSAGE_TX.get().unwrap().send(Message::Data(data)).unwrap();
 }
 #[op2(async(lazy), fast)]
-async fn timeout(#[bigint] time: u64) {
+async fn timeout(#[bigint] time: u64) -> (Vec<String>, Vec<String>) {
     tokio::time::sleep(Duration::from_millis(time)).await;
+    (
+        PRESSED_KEYS.lock().unwrap().clone(),
+        HELD_KEYS.lock().unwrap().clone(),
+    )
 }
 
 extension!(my_ext, ops = [test, send_data, timeout]);
+
+pub static PRESSED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+pub static HELD_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
 pub static MESSAGE_TX: OnceLock<std::sync::mpsc::Sender<Message>> = OnceLock::new();
 

@@ -1,6 +1,6 @@
 use macroquad::{miniquad::window::screen_size, prelude::*};
 
-use crate::engine::Message;
+use crate::engine::{HELD_KEYS, Message, PRESSED_KEYS};
 
 mod engine;
 
@@ -30,6 +30,18 @@ async fn main() {
                 }
             }
         }
+        let mut held = Vec::new();
+        for key in get_keys_down() {
+            held.push(format!("{:?}", key).to_lowercase());
+        }
+        *HELD_KEYS.lock().unwrap() = held;
+
+        let mut pressed = Vec::new();
+        for key in get_keys_pressed() {
+            pressed.push(format!("{:?}", key).to_lowercase());
+        }
+        *PRESSED_KEYS.lock().unwrap() = pressed;
+
         let (mut w, mut h) = screen_size();
         let scale = screen_dpi_scale();
         w /= scale;
