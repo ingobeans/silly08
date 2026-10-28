@@ -1,4 +1,4 @@
-import { test, send_data } from "ext:core/ops";
+import { test, send_data, timeout } from "ext:core/ops";
 
 function constructProxy(name, items) {
     return new Proxy(items, {
@@ -67,13 +67,7 @@ var window = constructProxy("window", {
 
 var tempDouble, tempI64, el, codo_key_buffer, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
 
-var first = true;
-
 function addEventListener() { }
 function setTimeout(callback, time) {
-    console.log("setTimeout " + time);
-    if (first) {
-        first = false;
-        callback();
-    }
+    timeout(time).then(callback);
 }

@@ -3,6 +3,7 @@ use deno_core::op2;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::OnceLock;
+use std::time::Duration;
 
 #[op2(fast)]
 fn test() -> f64 {
@@ -14,8 +15,12 @@ fn test() -> f64 {
 fn send_data(#[buffer(copy)] data: Vec<u8>) {
     MESSAGE_TX.get().unwrap().send(Message::Data(data)).unwrap();
 }
+#[op2(async(lazy), fast)]
+async fn timeout(#[bigint] time: u64) {
+    tokio::time::sleep(Duration::from_millis(time)).await;
+}
 
-extension!(my_ext, ops = [test, send_data]);
+extension!(my_ext, ops = [test, send_data, timeout]);
 
 pub static MESSAGE_TX: OnceLock<std::sync::mpsc::Sender<Message>> = OnceLock::new();
 
