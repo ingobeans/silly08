@@ -82,6 +82,9 @@ function addEventListener(event, callback) {
 }
 function toKeyboardEvent(char, shift) {
     let keyCode = char == "Escape" ? 27 : undefined;
+    if (char == "Space") {
+        char = " ";
+    }
     return constructProxy("char", {
         key: char,
         code: char,
