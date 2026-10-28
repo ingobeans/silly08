@@ -22,16 +22,30 @@ var indexedDB = constructProxy("indexedDB", {
     }
 });
 
-var context = constructProxy("context", {});
+var ImageData = constructProxy("ImageData", {
+    data: new Uint8ClampedArray(128 * 128 * 4)
+});
+
+var context = constructProxy("context", {
+    createImageData: (w, h) => {
+        return ImageData;
+    },
+    putImageData: (imageData, dx, dy, dirtyX, dirtyY, dirtyWidth, dirtyHeight) => {
+        console.log("imageData", dx, dy, dirtyX, dirtyY, dirtyWidth, dirtyHeight);
+    }
+});
 
 var canvas = constructProxy("canvas", {
     addEventListener: () => { },
-    getContext: () => { context },
+    getContext: () => { return context },
 });
 
 var Module = constructProxy("Module", {
     canvas: canvas,
     onAbort: (what) => { console.log("ABORT: " + what) }
+});
+var activeElement = constructProxy("activeElement", {
+    tagName: "html",
 });
 var document = constructProxy("document", {
     addEventListener: () => { },
@@ -39,10 +53,7 @@ var document = constructProxy("document", {
         console.log("WA: " + id);
         return null;
     },
-    get activeElement() {
-        console.log("wa");
-        return {}
-    },
+    activeElement: activeElement,
     currentScript: null,
 });
 var window = constructProxy("window", {
@@ -50,12 +61,15 @@ var window = constructProxy("window", {
     location: Location,
 });
 
-var tempDouble = undefined;
-var tempI64 = undefined;
-var el = undefined;
-var codo_key_buffer = undefined;
+var tempDouble, tempI64, el, codo_key_buffer, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
+
+var first = true;
 
 function addEventListener() { }
 function setTimeout(callback, time) {
     console.log("setTimeout " + time);
+    if (first) {
+        first = false;
+        callback();
+    }
 }
