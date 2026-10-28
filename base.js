@@ -68,6 +68,10 @@ var KeyboardEvent = constructProxy("KeyboardEvent", {
     DOM_KEY_LOCATION_RIGHT: 2
 });
 
+function download_browser_file(...a) {
+    console.log("SAVE: " + a);
+}
+
 var tempDouble, tempI64, _dir_name, el, codo_key_buffer, codo_mounted_filesystem, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
 
 let keyEventListeners = {
@@ -113,6 +117,32 @@ function sendEvents(targets, keys) {
         }
     }
 }
+
+// https://github.com/SollyBunny/structuredClone
+globalThis.structuredClone = function (source, options) {
+    options = options || {};
+    options.transfer = options.transfer || [];
+    let value = source;
+    if (Array.isArray(source)) {
+        if (options.transfer.indexOf(source) === -1) {
+            options.transfer.push(source);
+            value = [...source];
+            for (let i = 0; i < value.length; ++i)
+                value[i] = structuredClone(value[name]);
+        }
+    } else if (source === null) {
+        value = null;
+    } else if (typeof source === "object" && source.__proto__ === Object.prototype) {
+        if (options.transfer.indexOf(source) === -1) {
+            options.transfer.push(source);
+            value = Object.assign({}, source);
+            for (const name in value)
+                value[name] = structuredClone(value[name]);
+        }
+    }
+    return value;
+}
+
 
 globalThis.setTimeout = function (callback, time) {
     timeout(time).then(([pressedKeys, heldKeys]) => {
