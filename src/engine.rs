@@ -46,7 +46,7 @@ pub enum Message {
     Data(Vec<u8>),
 }
 
-async fn run() -> Result<(), AnyError> {
+async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
     let main_module = deno_core::url::Url::parse("node:edu.js")?;
     let mut js_runtime = deno_core::JsRuntime::new(deno_core::RuntimeOptions {
         module_loader: Some(Rc::new(deno_core::FsModuleLoader)),
@@ -56,7 +56,7 @@ async fn run() -> Result<(), AnyError> {
 
     let cart = format!(
         "let sample = `data:application/pkcs8;base64,{}`;",
-        BASE64_STANDARD.encode(include_bytes!("../btd64.p8"))
+        BASE64_STANDARD.encode(cart_data)
     );
     let base = std::fs::read_to_string("base.js")?;
     let file = std::fs::read_to_string("edu.js")?;
@@ -81,18 +81,20 @@ async fn run() -> Result<(), AnyError> {
     Ok(())
 }
 
-pub fn run_thread() -> (
+pub fn run_thread(
+    cart_data: Vec<u8>,
+) -> (
     std::thread::JoinHandle<Result<(), AnyError>>,
     std::sync::mpsc::Receiver<Message>,
 ) {
     let (tx, rx) = std::sync::mpsc::channel();
-    let handle = std::thread::spawn(|| {
+    let handle = std::thread::spawn(move || {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .unwrap();
         MESSAGE_TX.set(tx).unwrap();
-        runtime.block_on(run())
+        runtime.block_on(run(&cart_data))
     });
 
     (handle, rx)

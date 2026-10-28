@@ -6,7 +6,12 @@ mod engine;
 
 #[macroquad::main("silly08")]
 async fn main() {
-    let (handle, rx) = engine::run_thread();
+    let data = if let Some(path) = std::env::args().nth(1) {
+        std::fs::read(path).unwrap()
+    } else {
+        include_bytes!("../test.p8").to_vec()
+    };
+    let (handle, rx) = engine::run_thread(data);
 
     let image_data: [u8; 128 * 128 * 4] = std::array::from_fn(|_| 0);
     let mut image = Image {
@@ -66,7 +71,7 @@ async fn main() {
 
         if booted {
             booted = false;
-            let mut keys: Vec<String> = "print(\"123\")".chars().map(|a| a.to_string()).collect();
+            let mut keys: Vec<String> = "run".chars().map(|a| a.to_string()).collect();
             keys.push("Enter".to_string());
             *PRESSED_KEYS.lock().unwrap() = keys;
         }
