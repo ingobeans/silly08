@@ -19,6 +19,11 @@ fn send_data(#[buffer(copy)] data: Vec<u8>) {
 #[op2(async(lazy), fast)]
 async fn timeout(#[bigint] time: u64) -> (Vec<String>, Vec<String>) {
     tokio::time::sleep(Duration::from_millis(time)).await;
+    let mut lock = BOOTED.lock().unwrap();
+    if !*lock {
+        *lock = true;
+        MESSAGE_TX.get().unwrap().send(Message::Booted).unwrap();
+    }
     (
         PRESSED_KEYS.lock().unwrap().clone(),
         HELD_KEYS.lock().unwrap().clone(),
@@ -30,11 +35,13 @@ extension!(my_ext, ops = [test, send_data, timeout]);
 pub static PRESSED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 pub static HELD_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
+pub static BOOTED: Mutex<bool> = Mutex::new(false);
 pub static MESSAGE_TX: OnceLock<std::sync::mpsc::Sender<Message>> = OnceLock::new();
 
 #[derive(Debug)]
 pub enum Message {
     Ping,
+    Booted,
     Data(Vec<u8>),
 }
 
