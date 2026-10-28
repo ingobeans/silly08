@@ -1,7 +1,7 @@
+use deno_core::error::AnyError;
 use deno_core::extension;
 use deno_core::op2;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -30,29 +30,29 @@ pub enum Message {
     Data(Vec<u8>),
 }
 
-async fn run() {
-    let main_module = deno_core::url::Url::parse("node:edu.js").unwrap();
+async fn run() -> Result<(), AnyError> {
+    let main_module = deno_core::url::Url::parse("node:edu.js")?;
     let mut js_runtime = deno_core::JsRuntime::new(deno_core::RuntimeOptions {
         module_loader: Some(Rc::new(deno_core::FsModuleLoader)),
         extensions: vec![my_ext::init()],
         ..Default::default()
     });
 
-    let base = std::fs::read_to_string("base.js").unwrap();
-    let file = std::fs::read_to_string("edu.js").unwrap();
+    let base = std::fs::read_to_string("base.js")?;
+    let file = std::fs::read_to_string("edu.js")?;
     let code = base + &file;
 
     let mod_id = js_runtime
         .load_main_es_module_from_code(&main_module, code)
-        .await
-        .unwrap();
+        .await?;
     let result = js_runtime.mod_evaluate(mod_id);
-    let _ = js_runtime.run_event_loop(Default::default()).await.unwrap();
-    let _ = result.await.unwrap();
+    js_runtime.run_event_loop(Default::default()).await?;
+    result.await?;
+    Ok(())
 }
 
 pub fn run_thread() -> (
-    std::thread::JoinHandle<()>,
+    std::thread::JoinHandle<Result<(), AnyError>>,
     std::sync::mpsc::Receiver<Message>,
 ) {
     let (tx, rx) = std::sync::mpsc::channel();

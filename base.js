@@ -1,4 +1,4 @@
-import { test, send_data, timeout } from "ext:core/ops";
+import { send_data, timeout } from "ext:core/ops";
 
 function constructProxy(name, items) {
     return new Proxy(items, {
@@ -9,9 +9,7 @@ function constructProxy(name, items) {
     })
 }
 
-var DBOpenRequest = constructProxy("DBOpenRequest", {
-
-});
+var DBOpenRequest = constructProxy("DBOpenRequest", {});
 
 var Location = constructProxy("location", {
     pathname: "silly08"
