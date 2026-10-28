@@ -1,25 +1,28 @@
 import { send_data, timeout } from "ext:core/ops";
+import "fake-indexeddb:auto";
 
-function constructProxy(name, items) {
+function constructProxy(name, items, log = false, onSet = undefined) {
+    if (!log) {
+        return items;
+    }
     return new Proxy(items, {
         get(target, property) {
-            // console.log("[PROXY]: " + name + " : " + property);
+            console.log("[PROXY]: " + name + " : " + property);
             return property in target ? target[property] : undefined;
+        },
+        set(target, property, value) {
+            console.log("[PROXY SET]: " + name + " : " + property);
+            if (onSet) {
+                onSet(property, value);
+            }
+            target[property] = value;
+            return true;
         }
     })
 }
 
-var DBOpenRequest = constructProxy("DBOpenRequest", {});
-
 var Location = constructProxy("location", {
     pathname: "silly08"
-});
-
-var indexedDB = constructProxy("indexedDB", {
-    open: (name) => {
-        console.log("opening indexedDB: " + name);
-        return DBOpenRequest;
-    }
 });
 
 var ImageData = constructProxy("ImageData", {
@@ -65,7 +68,7 @@ var KeyboardEvent = constructProxy("KeyboardEvent", {
     DOM_KEY_LOCATION_RIGHT: 2
 });
 
-var tempDouble, tempI64, el, codo_key_buffer, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
+var tempDouble, tempI64, el, codo_key_buffer, codo_mounted_filesystem, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
 
 let keyEventListeners = {
     keydown: [],
@@ -96,13 +99,15 @@ function sendEvents(targets, keys) {
     }
 }
 
-function setTimeout(callback, time) {
+globalThis.setTimeout = function (callback, time) {
     timeout(time).then(([pressedKeys, heldKeys]) => {
-        if (pressedKeys.length > 0) {
-            console.log("Keys: " + pressedKeys);
+        if (time != 0) {
+            if (pressedKeys.length > 0) {
+                // console.log("Keys: " + pressedKeys);
+            }
+            sendEvents(keyEventListeners.keydown, pressedKeys);
+            // sendEvents(keyEventListeners.keydown,heldKeys);
         }
-        sendEvents(keyEventListeners.keydown, pressedKeys);
-        // sendEvents(keyEventListeners.keydown,heldKeys);
         callback();
     });
 }

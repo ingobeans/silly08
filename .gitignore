@@ -1,6 +1,5 @@
 edu.js
-
-
-# Added by cargo
+fake-indexeddb.js
 
 /target
+/node_modules

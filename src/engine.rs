@@ -1,6 +1,7 @@
 use deno_core::error::AnyError;
 use deno_core::extension;
 use deno_core::op2;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::sync::OnceLock;
@@ -57,12 +58,22 @@ async fn run() -> Result<(), AnyError> {
     let file = std::fs::read_to_string("edu.js")?;
     let code = base + &file;
 
+    let a = js_runtime
+        .load_side_es_module_from_code(
+            &deno_core::ModuleSpecifier::parse("fake-indexeddb:auto")?,
+            "class DOMException {}".to_string() + include_str!("../fake-indexeddb.js"),
+        )
+        .await?;
+    let lib_result = js_runtime.mod_evaluate(a);
+
     let mod_id = js_runtime
         .load_main_es_module_from_code(&main_module, code)
         .await?;
     let result = js_runtime.mod_evaluate(mod_id);
+
     js_runtime.run_event_loop(Default::default()).await?;
     result.await?;
+    lib_result.await?;
     Ok(())
 }
 
