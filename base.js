@@ -116,6 +116,12 @@ function toKeyboardEvent(char) {
         char = " ";
     }
 
+    let dirIndex = ["Left", "Up", "Right", "Down"].indexOf(char)
+    if (dirIndex != -1) {
+        char = "Arrow" + char;
+        keyCode = 37 + dirIndex;
+    }
+
     if (char.length == 1) {
         char = char.toLowerCase();
     }
