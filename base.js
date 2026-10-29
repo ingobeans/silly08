@@ -1,4 +1,4 @@
-import { send_data, timeout } from "ext:core/ops";
+import { send_data, timeout, serialize } from "ext:core/ops";
 import "fake-indexeddb:auto";
 
 function constructProxy(name, items, log = false, onSet = undefined) {
@@ -211,3 +211,6 @@ globalThis.setTimeout = function (callback, time) {
         callback();
     });
 }
+
+// console.log(serialize({ b: 2, a: () => { } }));
+// while (true) { }

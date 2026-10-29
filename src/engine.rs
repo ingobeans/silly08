@@ -2,10 +2,33 @@ use base64::prelude::*;
 use deno_core::error::AnyError;
 use deno_core::extension;
 use deno_core::op2;
+use deno_core::v8;
+use deno_core::v8::ValueSerializerHelper;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::sync::OnceLock;
 use std::time::Duration;
+
+struct DefaultSerializer;
+
+impl v8::ValueSerializerImpl for DefaultSerializer {
+    fn throw_data_clone_error<'s>(
+        &self,
+        scope: &mut v8::PinScope<'s, '_>,
+        message: v8::Local<'s, v8::String>,
+    ) {
+        eprintln!("Error serializing::{}", message.to_rust_string_lossy(scope));
+    }
+}
+
+#[op2]
+fn serialize(value: v8::Local<'_, v8::Value>, scope: &v8::PinScope<'_, '_>) -> Vec<u8> {
+    let context = scope.get_current_context();
+    let serializer = v8::ValueSerializer::new(scope, Box::new(DefaultSerializer));
+    serializer.write_header();
+    serializer.write_value(context, value);
+    serializer.release()
+}
 
 #[op2(fast)]
 fn test() -> f64 {
@@ -41,7 +64,7 @@ async fn timeout(#[bigint] time: u64) -> (bool, Vec<String>, Vec<String>) {
     (false, Vec::new(), Vec::new())
 }
 
-extension!(my_ext, ops = [test, send_data, timeout]);
+extension!(my_ext, ops = [test, send_data, timeout, serialize]);
 
 pub static KEYS_AVAILABLE: Mutex<bool> = Mutex::new(false);
 pub static RELEASED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
