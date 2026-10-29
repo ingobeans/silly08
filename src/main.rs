@@ -1,6 +1,6 @@
 use macroquad::{miniquad::window::screen_size, prelude::*};
 
-use crate::engine::{HELD_KEYS, Message, PRESSED_KEYS};
+use crate::engine::{HELD_KEYS, KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS};
 
 mod engine;
 
@@ -45,29 +45,23 @@ async fn main() {
 
         let mut held = Vec::new();
         for key in get_keys_down() {
-            let mut key = format!("{:?}", key);
-            if key.len() == 1 {
-                key = key.to_lowercase();
-            }
-            if key.starts_with("Key") {
-                key = key[3..].to_string();
-            }
-            held.push(key);
+            held.push(format!("{key:?}"));
         }
-        *HELD_KEYS.lock().unwrap() = held;
+        HELD_KEYS.lock().unwrap().append(&mut held);
 
         let mut pressed = Vec::new();
         for key in get_keys_pressed() {
-            let mut key = format!("{:?}", key);
-            if key.len() == 1 {
-                key = key.to_lowercase();
-            }
-            if key.starts_with("Key") {
-                key = key[3..].to_string();
-            }
-            pressed.push(key);
+            pressed.push(format!("{key:?}"));
         }
-        *PRESSED_KEYS.lock().unwrap() = pressed;
+        PRESSED_KEYS.lock().unwrap().append(&mut pressed);
+
+        let mut released = Vec::new();
+        for key in get_keys_released() {
+            released.push(format!("{key:?}"));
+        }
+        RELEASED_KEYS.lock().unwrap().append(&mut released);
+
+        *KEYS_AVAILABLE.lock().unwrap() = true;
 
         if booted {
             booted = false;

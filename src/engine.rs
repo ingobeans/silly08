@@ -18,21 +18,34 @@ fn send_data(#[buffer(copy)] data: Vec<u8>) {
     MESSAGE_TX.get().unwrap().send(Message::Data(data)).unwrap();
 }
 #[op2(async(lazy), fast)]
-async fn timeout(#[bigint] time: u64) -> (Vec<String>, Vec<String>) {
+async fn timeout(#[bigint] time: u64) -> (bool, Vec<String>, Vec<String>, Vec<String>) {
     tokio::time::sleep(Duration::from_millis(time)).await;
-    let mut lock = BOOTED.lock().unwrap();
-    if !*lock {
-        *lock = true;
-        MESSAGE_TX.get().unwrap().send(Message::Booted).unwrap();
+
+    if time != 0 {
+        let mut lock = BOOTED.lock().unwrap();
+        if !*lock {
+            *lock = true;
+            MESSAGE_TX.get().unwrap().send(Message::Booted).unwrap();
+        }
+
+        let mut lock = KEYS_AVAILABLE.lock().unwrap();
+        if *lock {
+            *lock = false;
+            return (
+                true,
+                PRESSED_KEYS.lock().unwrap().drain(..).collect(),
+                HELD_KEYS.lock().unwrap().drain(..).collect(),
+                RELEASED_KEYS.lock().unwrap().drain(..).collect(),
+            );
+        }
     }
-    (
-        PRESSED_KEYS.lock().unwrap().clone(),
-        HELD_KEYS.lock().unwrap().clone(),
-    )
+    (false, Vec::new(), Vec::new(), Vec::new())
 }
 
 extension!(my_ext, ops = [test, send_data, timeout]);
 
+pub static KEYS_AVAILABLE: Mutex<bool> = Mutex::new(false);
+pub static RELEASED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 pub static PRESSED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 pub static HELD_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 

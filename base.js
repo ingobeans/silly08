@@ -116,6 +116,13 @@ function toKeyboardEvent(char) {
         char = " ";
     }
 
+    if (char.length == 1) {
+        char = char.toLowerCase();
+    }
+    if (char.startsWith("Key")) {
+        char = char.substring(3);
+    }
+
     // todo: replace hardcoded swedish keyboard layout
     // (teporary fix)
     let asInt = parseInt(char);
@@ -169,8 +176,8 @@ globalThis.structuredClone = function (source, options) {
 
 
 globalThis.setTimeout = function (callback, time) {
-    timeout(time).then(([pressedKeys, heldKeys]) => {
-        if (time != 0) {
+    timeout(time).then(([keysAvailable, pressedKeys, heldKeys]) => {
+        if (keysAvailable) {
             shift = heldKeys.includes("LeftShift");
             if (pressedKeys.length > 0) {
                 // console.log("Keys: " + pressedKeys);
