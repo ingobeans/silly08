@@ -1,4 +1,4 @@
-import { send_data, timeout, serialize } from "ext:core/ops";
+import { send_data, timeout, serialize, deserialize } from "ext:core/ops";
 import "fake-indexeddb:auto";
 
 function constructProxy(name, items, log = false, onSet = undefined) {
@@ -212,5 +212,9 @@ globalThis.setTimeout = function (callback, time) {
     });
 }
 
-// console.log(serialize({ b: 2, a: () => { } }));
+// // let s = serialize({ b: 2, a: () => { } }); // fails
+// let s = serialize("{ b: 2 }");
+// console.log(typeof s);
+// let g = deserialize(new Uint8Array(s));
+// console.log(g);
 // while (true) { }

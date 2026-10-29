@@ -3,6 +3,7 @@ use deno_core::error::AnyError;
 use deno_core::extension;
 use deno_core::op2;
 use deno_core::v8;
+use deno_core::v8::ValueDeserializerHelper;
 use deno_core::v8::ValueSerializerHelper;
 use std::rc::Rc;
 use std::sync::Mutex;
@@ -20,6 +21,7 @@ impl v8::ValueSerializerImpl for DefaultSerializer {
         eprintln!("Error serializing::{}", message.to_rust_string_lossy(scope));
     }
 }
+impl v8::ValueDeserializerImpl for DefaultSerializer {}
 
 #[op2]
 fn serialize(value: v8::Local<'_, v8::Value>, scope: &v8::PinScope<'_, '_>) -> Vec<u8> {
@@ -28,6 +30,18 @@ fn serialize(value: v8::Local<'_, v8::Value>, scope: &v8::PinScope<'_, '_>) -> V
     serializer.write_header();
     serializer.write_value(context, value);
     serializer.release()
+}
+
+#[op2]
+fn deserialize<'t>(
+    #[buffer] data: &[u8],
+    scope: &v8::PinScope<'t, '_>,
+) -> Option<v8::Local<'t, v8::Value>> {
+    let context = scope.get_current_context();
+
+    let serializer = v8::ValueDeserializer::new(scope, Box::new(DefaultSerializer), data);
+    serializer.read_header(context);
+    serializer.read_value(context)
 }
 
 #[op2(fast)]
@@ -64,7 +78,10 @@ async fn timeout(#[bigint] time: u64) -> (bool, Vec<String>, Vec<String>) {
     (false, Vec::new(), Vec::new())
 }
 
-extension!(my_ext, ops = [test, send_data, timeout, serialize]);
+extension!(
+    my_ext,
+    ops = [test, send_data, timeout, serialize, deserialize]
+);
 
 pub static KEYS_AVAILABLE: Mutex<bool> = Mutex::new(false);
 pub static RELEASED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
