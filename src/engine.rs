@@ -18,7 +18,7 @@ fn send_data(#[buffer(copy)] data: Vec<u8>) {
     MESSAGE_TX.get().unwrap().send(Message::Data(data)).unwrap();
 }
 #[op2(async(lazy), fast)]
-async fn timeout(#[bigint] time: u64) -> (bool, Vec<String>, Vec<String>, Vec<String>) {
+async fn timeout(#[bigint] time: u64) -> (bool, Vec<String>, Vec<String>) {
     tokio::time::sleep(Duration::from_millis(time)).await;
 
     if time != 0 {
@@ -34,12 +34,11 @@ async fn timeout(#[bigint] time: u64) -> (bool, Vec<String>, Vec<String>, Vec<St
             return (
                 true,
                 PRESSED_KEYS.lock().unwrap().drain(..).collect(),
-                HELD_KEYS.lock().unwrap().drain(..).collect(),
                 RELEASED_KEYS.lock().unwrap().drain(..).collect(),
             );
         }
     }
-    (false, Vec::new(), Vec::new(), Vec::new())
+    (false, Vec::new(), Vec::new())
 }
 
 extension!(my_ext, ops = [test, send_data, timeout]);
@@ -47,7 +46,6 @@ extension!(my_ext, ops = [test, send_data, timeout]);
 pub static KEYS_AVAILABLE: Mutex<bool> = Mutex::new(false);
 pub static RELEASED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 pub static PRESSED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
-pub static HELD_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
 pub static BOOTED: Mutex<bool> = Mutex::new(false);
 pub static MESSAGE_TX: OnceLock<std::sync::mpsc::Sender<Message>> = OnceLock::new();

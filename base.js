@@ -110,7 +110,7 @@ function addEventListener(event, callback) {
 }
 
 let shift = false;
-function toKeyboardEvent(char) {
+function toKeyboardEvent(char, type) {
     let keyCode = char == "Escape" ? 27 : undefined;
     if (char == "Space") {
         char = " ";
@@ -141,13 +141,13 @@ function toKeyboardEvent(char) {
     return constructProxy("char", {
         key: char,
         code: char,
-        type: "keydown",
+        type: type,
         keyCode: keyCode,
     });
 }
 
-function sendEvents(targets, keys) {
-    let pressed = keys.map(toKeyboardEvent);
+function sendEvents(targets, keys, type) {
+    let pressed = keys.map((e) => { return toKeyboardEvent(e, type) });
     for (let ev of pressed) {
         for (let item of targets) {
             item(ev)
@@ -180,16 +180,22 @@ globalThis.structuredClone = function (source, options) {
     return value;
 }
 
+let heldKeys = {}
 
 globalThis.setTimeout = function (callback, time) {
-    timeout(time).then(([keysAvailable, pressedKeys, heldKeys]) => {
+    timeout(time).then(([keysAvailable, pressedKeys, releasedKeys]) => {
         if (keysAvailable) {
-            shift = heldKeys.includes("LeftShift");
-            if (pressedKeys.length > 0) {
-                // console.log("Keys: " + pressedKeys);
+            // track map of pressed keys for debug purposes
+            for (let k of pressedKeys) {
+                heldKeys[k] = true;
             }
-            sendEvents(keyEventListeners.keydown, pressedKeys);
-            // sendEvents(keyEventListeners.keydown,heldKeys);
+            for (let k of releasedKeys) {
+                heldKeys[k] = false;
+            }
+            shift = heldKeys["LeftShift"] == true;
+
+            sendEvents(keyEventListeners.keydown, pressedKeys, "keydown");
+            sendEvents(keyEventListeners.keyup, releasedKeys, "keyup");
             if (pressedKeys.includes("RightShift")) {
                 console.log(codo_command);
             }

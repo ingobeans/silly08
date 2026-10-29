@@ -1,6 +1,6 @@
 use macroquad::{miniquad::window::screen_size, prelude::*};
 
-use crate::engine::{HELD_KEYS, KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS};
+use crate::engine::{KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS};
 
 mod engine;
 
@@ -42,12 +42,6 @@ async fn main() {
             let err = handle.join().unwrap().unwrap_err();
             panic!("{err:?}");
         }
-
-        let mut held = Vec::new();
-        for key in get_keys_down() {
-            held.push(format!("{key:?}"));
-        }
-        HELD_KEYS.lock().unwrap().append(&mut held);
 
         let mut pressed = Vec::new();
         for key in get_keys_pressed() {
