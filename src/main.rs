@@ -4,7 +4,16 @@ use crate::engine::{KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS};
 
 mod engine;
 
-#[macroquad::main("silly08")]
+fn window() -> Conf {
+    Conf {
+        window_title: "silly08".to_string(),
+        window_width: 128 * 6,
+        window_height: 128 * 6,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window)]
 async fn main() {
     let data = if let Some(path) = std::env::args().nth(1) {
         std::fs::read(path).unwrap()
