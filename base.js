@@ -111,9 +111,16 @@ function addEventListener(event, callback) {
 
 let shift = false;
 function toKeyboardEvent(char, type) {
-    let keyCode = char == "Escape" ? 27 : undefined;
+    let keyCode = undefined;
+
     if (char == "Space") {
         char = " ";
+    }
+
+    if (char == "Escape") {
+        keyCode = 27;
+    } else if (char == "Enter") {
+        keyCode = 13;
     }
 
     let dirIndex = ["Left", "Up", "Right", "Down"].indexOf(char)
