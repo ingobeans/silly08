@@ -64,19 +64,22 @@ async fn main() {
             *PRESSED_KEYS.lock().unwrap() = keys;
         }
 
-        let (mut w, mut h) = screen_size();
+        let (mut screen_w, mut screen_h) = screen_size();
         let scale = screen_dpi_scale();
-        w /= scale;
-        h /= scale;
-        let scale_factor = (w / 128.0).min(h / 128.0);
+        screen_w /= scale;
+        screen_h /= scale;
+        let scale_factor = (screen_w / 128.0).min(screen_h / 128.0);
+        let size = 128.0 * scale_factor;
+        let x = (screen_w - size) / 2.0;
+        let y = (screen_h - size) / 2.0;
 
         draw_texture_ex(
             &texture,
-            0.0,
-            0.0,
+            x,
+            y,
             WHITE,
             DrawTextureParams {
-                dest_size: Some(Vec2::new(128.0 * scale_factor, 128.0 * scale_factor)),
+                dest_size: Some(Vec2::new(size, size)),
                 ..Default::default()
             },
         );
