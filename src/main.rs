@@ -70,7 +70,8 @@ async fn main() {
             booted = false;
             let mut keys: Vec<String> = "run".chars().map(|a| a.to_string()).collect();
             keys.push("Enter".to_string());
-            *PRESSED_KEYS.lock().unwrap() = keys;
+            *PRESSED_KEYS.lock().unwrap() = keys.clone();
+            *RELEASED_KEYS.lock().unwrap() = keys;
         }
 
         let (mut screen_w, mut screen_h) = screen_size();
