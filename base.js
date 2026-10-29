@@ -122,11 +122,12 @@ function toKeyboardEvent(char, type) {
         keyCode = 37 + dirIndex;
     }
 
-    if (char.length == 1) {
-        char = char.toLowerCase();
-    }
     if (char.startsWith("Key")) {
         char = char.substring(3);
+    }
+    if (char.length == 1) {
+        keyCode = char.charCodeAt(0);
+        char = char.toLowerCase();
     }
 
     // todo: replace hardcoded swedish keyboard layout
