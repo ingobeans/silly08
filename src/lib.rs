@@ -1,5 +1,7 @@
 mod engine;
 mod libretro;
+use std::sync::Mutex;
+
 use libretro::*;
 
 #[unsafe(no_mangle)]
@@ -40,4 +42,107 @@ pub extern "C" fn retro_get_system_av_info(info: *mut retro_system_av_info) {
         (*info).geometry.max_height = 128;
         (*info).geometry.aspect_ratio = 1.0;
     }
+}
+
+static ENVIRON_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_set_environment(cb: retro_environment_t) {
+    *ENVIRON_CB.lock().unwrap() = Some(cb);
+
+    //    if (cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &logging))
+    //       log_cb = logging.log;
+    //    else
+    //       log_cb = fallback_log;
+
+    //    static const struct retro_controller_description controllers[] = {
+    //       { "Nintendo DS", RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 0) },
+    //    };
+
+    //    static const struct retro_controller_info ports[] = {
+    //       { controllers, 1 },
+    //       { NULL, 0 },
+    //    };
+
+    //    unsafe {
+    //     cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
+    //    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
+    let desc: &mut [retro_input_descriptor] = &mut [
+        retro_input_descriptor {
+            port: 0,
+            device: RETRO_DEVICE_JOYPAD,
+            index: 0,
+            id: RETRO_DEVICE_ID_JOYPAD_LEFT,
+            description: "Left".as_ptr(),
+        },
+        retro_input_descriptor {
+            port: 0,
+            device: RETRO_DEVICE_JOYPAD,
+            index: 0,
+            id: RETRO_DEVICE_ID_JOYPAD_UP,
+            description: "Up".as_ptr(),
+        },
+        retro_input_descriptor {
+            port: 0,
+            device: RETRO_DEVICE_JOYPAD,
+            index: 0,
+            id: RETRO_DEVICE_ID_JOYPAD_DOWN,
+            description: "Down".as_ptr(),
+        },
+        retro_input_descriptor {
+            port: 0,
+            device: RETRO_DEVICE_JOYPAD,
+            index: 0,
+            id: RETRO_DEVICE_ID_JOYPAD_RIGHT,
+            description: "Right".as_ptr(),
+        },
+        retro_input_descriptor {
+            port: 0,
+            device: 0,
+            index: 0,
+            id: 0,
+            description: 0_usize as _,
+        },
+    ];
+
+    let cb = ENVIRON_CB.lock().unwrap().unwrap();
+    unsafe {
+        cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc as *mut _ as _);
+    }
+
+    let mut fmt = retro_pixel_format::RETRO_PIXEL_FORMAT_RGB565;
+    let res = unsafe { cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &mut fmt as *mut _ as _) };
+    if res == 0 {
+        println!("XRGB8888 is not supported.");
+        return false;
+    }
+
+    let mut retro_game_path = [0_u8; 4096];
+    let mut index = 0;
+    unsafe {
+        let mut ptr = (*info).path;
+        loop {
+            if *ptr == 0 {
+                break;
+            }
+            retro_game_path[index] = *ptr;
+            index += 1;
+            ptr = ptr.add(1);
+        }
+    }
+    println!(
+        "Got path: {}",
+        String::from_utf8_lossy(&retro_game_path[..index])
+    );
+    //    struct retro_audio_callback audio_cb = { audio_callback, audio_set_state };
+    //    use_audio_cb = ENVIRON_CB(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, &audio_cb);
+
+    //    check_variables();
+
+    //    (void)info;
+    return true;
 }
