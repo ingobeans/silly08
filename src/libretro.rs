@@ -1,5 +1,8 @@
 #![allow(dead_code, non_camel_case_types)]
 
+// this file contains libretro bindings that i manually ported from C from:
+// https://github.com/libretro/libretro-common/blob/master/include/libretro.h
+
 use std::ffi::c_void;
 
 pub const RETRO_API_VERSION: u32 = 1;
