@@ -63,7 +63,7 @@ async fn main() {
                 save_state = Some(save_data);
                 println!("saved state!");
             } else if is_key_pressed(KeyCode::A)
-                && let Some(save_state) = save_state.take()
+                && let Some(save_state) = save_state.clone()
             {
                 sender_tx
                     .send(StatusMessage::LoadState(save_state))
