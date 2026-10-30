@@ -267,9 +267,7 @@ pub unsafe extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_unserialize(data: *mut u8, size: usize) -> bool {
     assert_eq!(size, retro_serialize_size());
-    println!("Hi!");
     let vec = unsafe { std::slice::from_raw_parts(data, size).to_vec() };
-    println!("test complete!");
 
     let Ok(mut lock) = TERMINATE_TX.lock() else {
         return false;
@@ -280,7 +278,6 @@ pub extern "C" fn retro_unserialize(data: *mut u8, size: usize) -> bool {
     let Ok(_) = tx.send(StatusMessage::LoadState(vec)) else {
         return false;
     };
-    println!("sent!!! message!");
     true
 }
 
