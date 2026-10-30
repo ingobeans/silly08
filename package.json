@@ -1,8 +1,0 @@
-{
-  "devDependencies": {
-    "fake-indexeddb": "^6.2.6"
-  },
-  "scripts": {
-    "build": "npx esbuild node_modules/fake-indexeddb/auto/index.js --bundle > fake-indexeddb.js"
-  }
-}

@@ -1,5 +1,4 @@
 import { send_data, timeout, serialize, deserialize } from "ext:core/ops";
-import "fake-indexeddb:auto";
 
 function constructProxy(name, items, log = false, onSet = undefined) {
     if (!log) {
@@ -90,6 +89,8 @@ var KeyboardEvent = constructProxy("KeyboardEvent", {
 function download_browser_file(...a) {
     console.log("SAVE: " + a);
 }
+
+var indexedDB = constructProxy("indexedDB", {});
 
 var tempDouble, tempI64, jsString, _codo_str_out, codo_command, p8_dropped_cart, p8_dropped_cart_name, _dir_name, el, codo_key_buffer, codo_mounted_filesystem, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
 
