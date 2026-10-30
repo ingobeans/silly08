@@ -212,3 +212,13 @@ globalThis.setTimeout = function (callback, time) {
         callback();
     });
 }
+
+function serializeNonFunctions(obj) {
+    let newObj = structuredClone(obj);
+    for (let [k, v] of Object.entries(newObj)) {
+        if (typeof v == "function") {
+            newObj[k] = undefined;
+        }
+    }
+    return serialize(newObj);
+}
