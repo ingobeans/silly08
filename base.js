@@ -172,8 +172,9 @@ globalThis.structuredClone = function (source, options) {
         if (options.transfer.indexOf(source) === -1) {
             options.transfer.push(source);
             value = [...source];
-            for (let i = 0; i < value.length; ++i)
-                value[i] = structuredClone(value[name]);
+            for (let i = 0; i < value.length; ++i) {
+                value[i] = structuredClone(value[i]);
+            }
         }
     } else if (source === null) {
         value = null;
@@ -211,10 +212,3 @@ globalThis.setTimeout = function (callback, time) {
         callback();
     });
 }
-
-// // let s = serialize({ b: 2, a: () => { } }); // fails
-// let s = serialize("{ b: 2 }");
-// console.log(typeof s);
-// let g = deserialize(new Uint8Array(s));
-// console.log(g);
-// while (true) { }
