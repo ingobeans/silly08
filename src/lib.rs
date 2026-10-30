@@ -1,6 +1,6 @@
 mod engine;
 mod libretro;
-use std::sync::Mutex;
+use std::{ffi::c_void, ptr::null, sync::Mutex};
 
 use libretro::*;
 
@@ -42,31 +42,6 @@ pub extern "C" fn retro_get_system_av_info(info: *mut retro_system_av_info) {
         (*info).geometry.max_height = 128;
         (*info).geometry.aspect_ratio = 1.0;
     }
-}
-
-static ENVIRON_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
-
-#[unsafe(no_mangle)]
-pub extern "C" fn retro_set_environment(cb: retro_environment_t) {
-    *ENVIRON_CB.lock().unwrap() = Some(cb);
-
-    //    if (cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &logging))
-    //       log_cb = logging.log;
-    //    else
-    //       log_cb = fallback_log;
-
-    //    static const struct retro_controller_description controllers[] = {
-    //       { "Nintendo DS", RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 0) },
-    //    };
-
-    //    static const struct retro_controller_info ports[] = {
-    //       { controllers, 1 },
-    //       { NULL, 0 },
-    //    };
-
-    //    unsafe {
-    //     cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
-    //    }
 }
 
 #[unsafe(no_mangle)]
@@ -145,4 +120,90 @@ pub extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
 
     //    (void)info;
     return true;
+}
+
+// callback setters
+
+static ENVIRON_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
+static VIDEO_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
+static AUDIO_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
+static AUDIO_BATCH_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
+static INPUT_POLL_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
+static INPUT_STATE_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_set_video_refresh(cb: retro_environment_t) {
+    *VIDEO_CB.lock().unwrap() = Some(cb);
+}
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_set_audio_sample(cb: retro_environment_t) {
+    *AUDIO_CB.lock().unwrap() = Some(cb);
+}
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_set_audio_sample_batch(cb: retro_environment_t) {
+    *AUDIO_BATCH_CB.lock().unwrap() = Some(cb);
+}
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_set_input_poll(cb: retro_environment_t) {
+    *INPUT_POLL_CB.lock().unwrap() = Some(cb);
+}
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_set_input_state(cb: retro_environment_t) {
+    *INPUT_STATE_CB.lock().unwrap() = Some(cb);
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_set_environment(cb: retro_environment_t) {
+    *ENVIRON_CB.lock().unwrap() = Some(cb);
+
+    //    if (cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &logging))
+    //       log_cb = logging.log;
+    //    else
+    //       log_cb = fallback_log;
+
+    //    static const struct retro_controller_description controllers[] = {
+    //       { "Nintendo DS", RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 0) },
+    //    };
+
+    //    static const struct retro_controller_info ports[] = {
+    //       { controllers, 1 },
+    //       { NULL, 0 },
+    //    };
+
+    //    unsafe {
+    //     cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
+    //    }
+}
+
+// function skeletons
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_unload_game() {}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_run() {}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_serialize_size() -> usize {
+    return 0;
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_serialize(_data_: *const c_void, _size: usize) -> bool {
+    return false;
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_unserialize(_data_: *const c_void, _size: usize) -> bool {
+    return false;
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_get_memory_data(_id: u32) -> *const c_void {
+    return null();
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_get_memory_size(_id: u32) -> usize {
+    return 0;
 }
