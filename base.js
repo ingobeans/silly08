@@ -110,6 +110,7 @@ function addEventListener(event, callback) {
 }
 
 let shift = false;
+let ctrl = true;
 function toKeyboardEvent(char, type) {
     let keyCode = undefined;
 
@@ -121,6 +122,8 @@ function toKeyboardEvent(char, type) {
         keyCode = 27;
     } else if (char == "Enter") {
         keyCode = 13;
+    } else if (char == "LeftControl") {
+        keyCode = 17;
     }
 
     let dirIndex = ["Left", "Up", "Right", "Down"].indexOf(char)
@@ -134,7 +137,9 @@ function toKeyboardEvent(char, type) {
     }
     if (char.length == 1) {
         keyCode = char.charCodeAt(0);
-        char = char.toLowerCase();
+        if (!shift) {
+            char = char.toLowerCase();
+        }
     }
 
     // todo: replace hardcoded swedish keyboard layout
@@ -151,6 +156,7 @@ function toKeyboardEvent(char, type) {
         code: char,
         type: type,
         keyCode: keyCode,
+        ctrlKey: ctrl,
     });
 }
 
