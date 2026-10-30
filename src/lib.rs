@@ -1,18 +1,20 @@
 mod engine;
 mod libretro;
-use std::{ffi::c_void, ptr::null, sync::Mutex};
+use std::{
+    ffi::c_void,
+    ptr::null,
+    sync::{Mutex, mpsc::Receiver},
+    thread::JoinHandle,
+};
 
+use deno_core::error::AnyError;
 use libretro::*;
 
-#[unsafe(no_mangle)]
-pub extern "C" fn retro_init() {
-    // engine::run_thread(cart_data)
-}
+use crate::engine::Message;
 
-#[unsafe(no_mangle)]
-pub extern "C" fn retro_deinit() {
-    // engine::run_thread(cart_data)
-}
+static JOIN_HANDLE: Mutex<Option<JoinHandle<Result<(), AnyError>>>> = Mutex::new(None);
+static MESSAGE_RX: Mutex<Option<Receiver<Message>>> = Mutex::new(None);
+
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_api_version() -> u32 {
     return RETRO_API_VERSION;
@@ -109,10 +111,16 @@ pub extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
             ptr = ptr.add(1);
         }
     }
-    println!(
-        "Got path: {}",
-        String::from_utf8_lossy(&retro_game_path[..index])
-    );
+    let path = String::from_utf8_lossy(&retro_game_path[..index]).to_string();
+    println!("Got path: {path}");
+
+    let Ok(data) = std::fs::read(path) else {
+        return false;
+    };
+    let (handle, rx) = engine::run_thread(data);
+    *JOIN_HANDLE.lock().unwrap() = Some(handle);
+    *MESSAGE_RX.lock().unwrap() = Some(rx);
+
     //    struct retro_audio_callback audio_cb = { audio_callback, audio_set_state };
     //    use_audio_cb = ENVIRON_CB(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, &audio_cb);
 
@@ -176,6 +184,12 @@ pub extern "C" fn retro_set_environment(cb: retro_environment_t) {
 }
 
 // function skeletons
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_init() {}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_deinit() {}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_unload_game() {}
