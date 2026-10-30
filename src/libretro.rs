@@ -30,6 +30,17 @@ pub struct retro_input_descriptor {
     retro_unload_game() is called. */
     pub description: *const u8,
 }
+impl retro_input_descriptor {
+    pub fn null() -> Self {
+        Self {
+            port: 0,
+            device: 0,
+            index: 0,
+            id: 0,
+            description: 0_usize as _,
+        }
+    }
+}
 
 #[repr(C)]
 pub struct retro_game_info {

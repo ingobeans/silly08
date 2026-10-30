@@ -75,49 +75,39 @@ pub extern "C" fn retro_run() {
     }
 }
 
+pub static BUTTONS: &[(u32, &str)] = &[
+    (RETRO_DEVICE_ID_JOYPAD_LEFT, "Left"),
+    (RETRO_DEVICE_ID_JOYPAD_UP, "Up"),
+    (RETRO_DEVICE_ID_JOYPAD_DOWN, "Down"),
+    (RETRO_DEVICE_ID_JOYPAD_RIGHT, "Right"),
+    (RETRO_DEVICE_ID_JOYPAD_B, "Button O"),
+    (RETRO_DEVICE_ID_JOYPAD_A, "Button X"),
+    (RETRO_DEVICE_ID_JOYPAD_START, "Button Pause"),
+];
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
-    let desc: &mut [retro_input_descriptor] = &mut [
-        retro_input_descriptor {
-            port: 0,
-            device: RETRO_DEVICE_JOYPAD,
-            index: 0,
-            id: RETRO_DEVICE_ID_JOYPAD_LEFT,
-            description: "Left".as_ptr(),
-        },
-        retro_input_descriptor {
-            port: 0,
-            device: RETRO_DEVICE_JOYPAD,
-            index: 0,
-            id: RETRO_DEVICE_ID_JOYPAD_UP,
-            description: "Up".as_ptr(),
-        },
-        retro_input_descriptor {
-            port: 0,
-            device: RETRO_DEVICE_JOYPAD,
-            index: 0,
-            id: RETRO_DEVICE_ID_JOYPAD_DOWN,
-            description: "Down".as_ptr(),
-        },
-        retro_input_descriptor {
-            port: 0,
-            device: RETRO_DEVICE_JOYPAD,
-            index: 0,
-            id: RETRO_DEVICE_ID_JOYPAD_RIGHT,
-            description: "Right".as_ptr(),
-        },
-        retro_input_descriptor {
-            port: 0,
-            device: 0,
-            index: 0,
-            id: 0,
-            description: 0_usize as _,
-        },
-    ];
+    // convert BUTTONS to list with input descriptors (and an additional null entry at the end)
+    let mut input_descriptors: [_; BUTTONS.len() + 1] = std::array::from_fn(|i| {
+        if i == BUTTONS.len() {
+            retro_input_descriptor::null()
+        } else {
+            retro_input_descriptor {
+                port: 0,
+                device: RETRO_DEVICE_JOYPAD,
+                index: 0,
+                id: BUTTONS[i].0,
+                description: BUTTONS[i].1.as_ptr(),
+            }
+        }
+    });
 
     let cb = ENVIRON_CB.lock().unwrap().unwrap();
     unsafe {
-        cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc as *mut _ as _);
+        cb(
+            RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS,
+            &mut input_descriptors as *mut _ as _,
+        );
     }
 
     let mut fmt = retro_pixel_format::RETRO_PIXEL_FORMAT_XRGB8888;
