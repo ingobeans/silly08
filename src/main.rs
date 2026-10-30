@@ -34,13 +34,10 @@ async fn main() {
     loop {
         if let Ok(message) = rx.try_recv() {
             match message {
-                Message::Data(data) => {
+                Message::ScreenData(data) => {
                     assert_eq!(data.len(), image.bytes.len());
                     image.bytes = data;
                     texture.update(&image);
-                }
-                _ => {
-                    println!("{message:?}");
                 }
             }
         }

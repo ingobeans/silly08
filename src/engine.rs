@@ -45,14 +45,12 @@ fn deserialize<'t>(
 }
 
 #[op2(fast)]
-fn test() -> f64 {
-    println!("EHBGEF");
-    MESSAGE_TX.get().unwrap().send(Message::Ping).unwrap();
-    4.5
-}
-#[op2(fast)]
 fn send_data(#[buffer(copy)] data: Vec<u8>) {
-    MESSAGE_TX.get().unwrap().send(Message::Data(data)).unwrap();
+    MESSAGE_TX
+        .get()
+        .unwrap()
+        .send(Message::ScreenData(data))
+        .unwrap();
 }
 #[op2(async(lazy), fast)]
 async fn timeout(#[bigint] time: u64) -> (bool, Vec<String>, Vec<String>) {
@@ -72,10 +70,7 @@ async fn timeout(#[bigint] time: u64) -> (bool, Vec<String>, Vec<String>) {
     (false, Vec::new(), Vec::new())
 }
 
-extension!(
-    my_ext,
-    ops = [test, send_data, timeout, serialize, deserialize]
-);
+extension!(my_ext, ops = [send_data, timeout, serialize, deserialize]);
 
 pub static KEYS_AVAILABLE: Mutex<bool> = Mutex::new(false);
 pub static RELEASED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
@@ -85,9 +80,7 @@ pub static MESSAGE_TX: OnceLock<std::sync::mpsc::Sender<Message>> = OnceLock::ne
 
 #[derive(Debug)]
 pub enum Message {
-    Ping,
-    Booted,
-    Data(Vec<u8>),
+    ScreenData(Vec<u8>),
 }
 
 async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
@@ -106,14 +99,6 @@ async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
     let file = std::fs::read_to_string("edu.js")?;
     let code = format!("{cart}\n{base}\n{file}");
 
-    let a = js_runtime
-        .load_side_es_module_from_code(
-            &deno_core::ModuleSpecifier::parse("fake-indexeddb:auto")?,
-            "class DOMException {}".to_string() + include_str!("../fake-indexeddb.js"),
-        )
-        .await?;
-    let lib_result = js_runtime.mod_evaluate(a);
-
     let mod_id = js_runtime
         .load_main_es_module_from_code(&main_module, code)
         .await?;
@@ -121,7 +106,6 @@ async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
 
     js_runtime.run_event_loop(Default::default()).await?;
     result.await?;
-    lib_result.await?;
     Ok(())
 }
 
