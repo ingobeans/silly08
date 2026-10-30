@@ -1,4 +1,6 @@
 use base64::prelude::*;
+use deno_core::GarbageCollected;
+use deno_core::cppgc::GcCell;
 use deno_core::error::AnyError;
 use deno_core::extension;
 use deno_core::op2;
@@ -64,22 +66,67 @@ fn send_data(#[buffer(copy)] data: Vec<u8>) {
         .unwrap();
 }
 
-#[op2(async(lazy), fast)]
-// todo: refactor the return type of this function :sob:
-async fn timeout(#[bigint] time: u64) -> (bool, bool, bool, Vec<u8>, Vec<String>, Vec<String>) {
-    tokio::time::sleep(Duration::from_millis(time)).await;
+#[repr(C)]
+pub struct SillyRuntimeObject {
+    keys_available: GcCell<bool>,
+    should_terminate: GcCell<bool>,
+    should_save_state: GcCell<bool>,
+    load_state: GcCell<Vec<u8>>,
+    pressed_keys: GcCell<Vec<String>>,
+    released_keys: GcCell<Vec<String>>,
+}
 
-    let mut terminate = false;
-    let mut save_state = false;
-    let mut load_state = Vec::new();
-    if time != 0 {
+#[op2]
+impl SillyRuntimeObject {
+    #[constructor]
+    #[cppgc]
+    fn new() -> SillyRuntimeObject {
+        SillyRuntimeObject {
+            keys_available: GcCell::new(false),
+            should_terminate: GcCell::new(false),
+            should_save_state: GcCell::new(false),
+            load_state: GcCell::new(Vec::new()),
+            pressed_keys: GcCell::new(Vec::new()),
+            released_keys: GcCell::new(Vec::new()),
+        }
+    }
+
+    #[getter]
+    fn keys_available(&self, isolate: &mut v8::Isolate) -> bool {
+        let a = *self.keys_available.get(isolate);
+        self.keys_available.set(isolate, false);
+        a
+    }
+    #[getter]
+    fn should_terminate(&self, isolate: &v8::Isolate) -> bool {
+        *self.should_terminate.get(isolate)
+    }
+    #[getter]
+    fn should_save_state(&self, isolate: &v8::Isolate) -> bool {
+        *self.should_save_state.get(isolate)
+    }
+    #[getter]
+    fn load_state(&self, isolate: &v8::Isolate) -> Vec<u8> {
+        self.load_state.get(isolate).clone()
+    }
+    #[getter]
+    fn pressed_keys(&self, isolate: &v8::Isolate) -> Vec<String> {
+        self.pressed_keys.get(isolate).clone()
+    }
+    #[getter]
+    fn released_keys(&self, isolate: &v8::Isolate) -> Vec<String> {
+        self.released_keys.get(isolate).clone()
+    }
+
+    #[fast]
+    fn update(&self, isolate: &mut v8::Isolate) {
         if let Ok(message) = TERMINATE_RX.lock().unwrap().as_mut().unwrap().try_recv() {
             match message {
-                StatusMessage::Terminate => terminate = true,
-                StatusMessage::SaveState => save_state = true,
+                StatusMessage::Terminate => self.should_terminate.set(isolate, true),
+                StatusMessage::SaveState => self.should_save_state.set(isolate, true),
                 StatusMessage::LoadState(data) => {
                     println!("wah");
-                    load_state = data
+                    self.load_state.set(isolate, data);
                 }
             }
         }
@@ -87,29 +134,31 @@ async fn timeout(#[bigint] time: u64) -> (bool, bool, bool, Vec<u8>, Vec<String>
         let mut lock = KEYS_AVAILABLE.lock().unwrap();
         if *lock {
             *lock = false;
-            return (
-                true,
-                terminate,
-                save_state,
-                load_state,
-                PRESSED_KEYS.lock().unwrap().drain(..).collect(),
-                RELEASED_KEYS.lock().unwrap().drain(..).collect(),
-            );
+            self.keys_available.set(isolate, true);
+            self.pressed_keys
+                .set(isolate, PRESSED_KEYS.lock().unwrap().drain(..).collect());
+            self.released_keys
+                .set(isolate, RELEASED_KEYS.lock().unwrap().drain(..).collect());
         }
     }
-    (
-        false,
-        terminate,
-        save_state,
-        load_state,
-        Vec::new(),
-        Vec::new(),
-    )
+}
+
+unsafe impl GarbageCollected for SillyRuntimeObject {
+    fn trace(&self, _visitor: &mut v8::cppgc::Visitor) {}
+    fn get_name(&self) -> &'static std::ffi::CStr {
+        c"SillyRuntimeObject"
+    }
+}
+
+#[op2(async(lazy), fast)]
+async fn timeout(#[bigint] time: u64) {
+    tokio::time::sleep(Duration::from_millis(time)).await;
 }
 
 extension!(
     my_ext,
-    ops = [send_data, timeout, serialize, deserialize, send_save_state]
+    ops = [send_data, timeout, serialize, deserialize, send_save_state],
+    objects = [SillyRuntimeObject],
 );
 
 pub static KEYS_AVAILABLE: Mutex<bool> = Mutex::new(false);

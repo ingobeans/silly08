@@ -1,4 +1,4 @@
-import { send_data, timeout, serialize, deserialize, send_save_state } from "ext:core/ops";
+import { send_data, timeout, serialize, deserialize, send_save_state, SillyRuntimeObject, } from "ext:core/ops";
 
 function constructProxy(name, items, log = false, onSet = undefined) {
     if (!log) {
@@ -218,44 +218,49 @@ let bootProcessFinished = false;
 
 let terminated = false;
 
+let runtime = new SillyRuntimeObject();
+
 globalThis.setTimeout = function (callback, time) {
     if (terminated) {
         return;
     }
-    timeout(time).then(([keysAvailable, shouldTerminate, shouldSaveState, loadState, pressedKeys, releasedKeys]) => {
-        if (loadState.length > 0) {
+    timeout(time).then(() => {
+        runtime.update();
+
+        if (runtime.loadState.length > 0) {
             print("wardjgohdguihughrf");
         }
-        terminated = terminated || shouldTerminate;
+        terminated = terminated || runtime.shouldTerminate;
         if (terminated) {
             return;
         }
 
-        if (keysAvailable) {
+        if (runtime.keysAvailable) {
             // track map of pressed keys for debug purposes
-            for (let k of pressedKeys) {
+            for (let k of runtime.pressedKeys) {
                 heldKeys[k] = true;
             }
-            for (let k of releasedKeys) {
+            for (let k of runtime.releasedKeys) {
                 heldKeys[k] = false;
             }
             shift = heldKeys["LeftShift"] == true;
 
-            sendEvents(keyEventListeners.keydown, pressedKeys, "keydown");
-            sendEvents(keyEventListeners.keyup, releasedKeys, "keyup");
+            sendEvents(keyEventListeners.keydown, runtime.pressedKeys, "keydown");
+            sendEvents(keyEventListeners.keyup, runtime.releasedKeys, "keyup");
 
         }
-        if (shouldSaveState) {
+        if (runtime.shouldSaveState) {
             let saveState = Module.HEAPU8.slice();
             send_save_state(saveState);
         }
-        if (loadState.length > 0) {
+        if (runtime.loadState.length > 0) {
             print("Hi! got load state!");
             print("loadState length: " + loadState.length);
             print("loadState type: " + typeof loadState);
             print("loadState instanceof Uint8Array: " + loadState instanceof Uint8Array);
             Module.HEAPU8.set(loadState);
         }
+
         callback();
     });
 }
