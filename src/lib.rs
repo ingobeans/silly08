@@ -45,19 +45,30 @@ pub extern "C" fn retro_get_system_av_info(info: *mut retro_system_av_info) {
         (*info).geometry.aspect_ratio = 1.0;
     }
 }
+fn rgba_to_xrgb8888(buf: &mut [u8]) {
+    for pixel in buf.chunks_exact_mut(4) {
+        // found through testing,
+        // dont know why the red and blue channels are swapped but whatever
+        let old_b = pixel[2];
+        pixel[2] = pixel[0];
+        pixel[0] = old_b;
+    }
+}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_run() {
     let Some(cb) = *VIDEO_CB.lock().unwrap() else {
         return;
     };
-    let data = SCREEN_DATA.lock().unwrap().clone();
+    let mut data = SCREEN_DATA.lock().unwrap().clone();
     if data.len() == 0 {
         return;
     }
     unsafe {
         assert_eq!(data.len(), 128 * 128 * 4);
-        cb(data.as_ptr() as _, 128, 128, 4);
+        // data.rotate_right(1); // rgba -> xrgb
+        rgba_to_xrgb8888(&mut data);
+        cb(data.as_ptr() as _, 128, 128, 4 * 128);
     }
 }
 
@@ -106,7 +117,7 @@ pub extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
         cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc as *mut _ as _);
     }
 
-    let mut fmt = retro_pixel_format::RETRO_PIXEL_FORMAT_RGB565;
+    let mut fmt = retro_pixel_format::RETRO_PIXEL_FORMAT_XRGB8888;
     let res = unsafe { cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &mut fmt as *mut _ as _) };
     if !res {
         println!("Pixel format is not supported.");
