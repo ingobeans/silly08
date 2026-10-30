@@ -1,6 +1,9 @@
 use macroquad::{miniquad::window::screen_size, prelude::*};
 
-use crate::engine::{KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS, SCREEN_DATA};
+use crate::engine::{
+    KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS, SAVE_STATE_AVAILABLE, SAVE_STATE_DATA,
+    SCREEN_DATA, StatusMessage,
+};
 
 mod engine;
 
@@ -20,7 +23,7 @@ async fn main() {
     } else {
         include_bytes!("../test.p8").to_vec()
     };
-    let (handle, rx, _) = engine::run_thread(data);
+    let (handle, message_rx, sender_tx) = engine::run_thread(data);
 
     let image_data: [u8; 128 * 128 * 4] = std::array::from_fn(|_| 0);
     let mut image = Image {
@@ -31,8 +34,10 @@ async fn main() {
     let texture = Texture2D::from_image(&image);
     texture.set_filter(FilterMode::Nearest);
 
+    let mut save_state: Option<Vec<u8>> = None;
+
     loop {
-        if let Ok(message) = rx.try_recv() {
+        if let Ok(message) = message_rx.try_recv() {
             match message {
                 Message::ScreenData => {
                     let data = SCREEN_DATA.lock().unwrap();
@@ -43,24 +48,40 @@ async fn main() {
             }
         }
 
-        if handle.is_finished() {
-            let err = handle.join().unwrap().unwrap_err();
-            panic!("{err:?}");
-        }
+        if is_key_down(KeyCode::RightShift) {
+            if is_key_pressed(KeyCode::S) {
+                sender_tx.send(StatusMessage::SaveState).unwrap();
+                println!("savestate");
 
-        let mut pressed = Vec::new();
-        for key in get_keys_pressed() {
-            pressed.push(format!("{key:?}"));
-        }
-        PRESSED_KEYS.lock().unwrap().append(&mut pressed);
+                while !SAVE_STATE_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
+                    std::hint::spin_loop();
+                }
+                SAVE_STATE_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
 
-        let mut released = Vec::new();
-        for key in get_keys_released() {
-            released.push(format!("{key:?}"));
-        }
-        RELEASED_KEYS.lock().unwrap().append(&mut released);
+                let mut lock = SAVE_STATE_DATA.lock().unwrap();
+                save_state = Some(lock.drain(..).collect());
+                println!("savedstate");
+            }
+        } else {
+            if handle.is_finished() {
+                let err = handle.join().unwrap().unwrap_err();
+                panic!("{err:?}");
+            }
 
-        *KEYS_AVAILABLE.lock().unwrap() = true;
+            let mut pressed = Vec::new();
+            for key in get_keys_pressed() {
+                pressed.push(format!("{key:?}"));
+            }
+            PRESSED_KEYS.lock().unwrap().append(&mut pressed);
+
+            let mut released = Vec::new();
+            for key in get_keys_released() {
+                released.push(format!("{key:?}"));
+            }
+            RELEASED_KEYS.lock().unwrap().append(&mut released);
+
+            *KEYS_AVAILABLE.lock().unwrap() = true;
+        }
 
         let (mut screen_w, mut screen_h) = screen_size();
         let scale = screen_dpi_scale();

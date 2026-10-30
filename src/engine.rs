@@ -67,7 +67,7 @@ fn send_data(#[buffer(copy)] data: Vec<u8>) {
 }
 
 #[repr(C)]
-pub struct SillyRuntimeObject {
+pub struct MessagePollObject {
     keys_available: GcCell<bool>,
     should_terminate: GcCell<bool>,
     should_save_state: GcCell<bool>,
@@ -77,20 +77,7 @@ pub struct SillyRuntimeObject {
 }
 
 #[op2]
-impl SillyRuntimeObject {
-    #[constructor]
-    #[cppgc]
-    fn new() -> SillyRuntimeObject {
-        SillyRuntimeObject {
-            keys_available: GcCell::new(false),
-            should_terminate: GcCell::new(false),
-            should_save_state: GcCell::new(false),
-            load_state: GcCell::new(Vec::new()),
-            pressed_keys: GcCell::new(Vec::new()),
-            released_keys: GcCell::new(Vec::new()),
-        }
-    }
-
+impl MessagePollObject {
     #[getter]
     fn keys_available(&self, isolate: &mut v8::Isolate) -> bool {
         let a = *self.keys_available.get(isolate);
@@ -118,35 +105,51 @@ impl SillyRuntimeObject {
         self.released_keys.get(isolate).clone()
     }
 
-    #[fast]
-    fn update(&self, isolate: &mut v8::Isolate) {
+    #[static_method]
+    #[cppgc]
+    fn poll() -> MessagePollObject {
+        let mut should_terminate = false;
+        let mut should_save_state = false;
+
+        let mut load_state = Vec::new();
+
         if let Ok(message) = TERMINATE_RX.lock().unwrap().as_mut().unwrap().try_recv() {
             match message {
-                StatusMessage::Terminate => self.should_terminate.set(isolate, true),
-                StatusMessage::SaveState => self.should_save_state.set(isolate, true),
+                StatusMessage::Terminate => should_terminate = true,
+                StatusMessage::SaveState => should_save_state = true,
                 StatusMessage::LoadState(data) => {
                     println!("wah");
-                    self.load_state.set(isolate, data);
+                    load_state = data;
                 }
             }
         }
 
         let mut lock = KEYS_AVAILABLE.lock().unwrap();
+
+        let keys_available = *lock;
+        let mut pressed_keys = Vec::new();
+        let mut released_keys = Vec::new();
+
         if *lock {
             *lock = false;
-            self.keys_available.set(isolate, true);
-            self.pressed_keys
-                .set(isolate, PRESSED_KEYS.lock().unwrap().drain(..).collect());
-            self.released_keys
-                .set(isolate, RELEASED_KEYS.lock().unwrap().drain(..).collect());
+            pressed_keys = PRESSED_KEYS.lock().unwrap().drain(..).collect();
+            released_keys = RELEASED_KEYS.lock().unwrap().drain(..).collect();
+        }
+        MessagePollObject {
+            should_terminate: GcCell::new(should_terminate),
+            should_save_state: GcCell::new(should_save_state),
+            keys_available: GcCell::new(keys_available),
+            pressed_keys: GcCell::new(pressed_keys),
+            released_keys: GcCell::new(released_keys),
+            load_state: GcCell::new(load_state),
         }
     }
 }
 
-unsafe impl GarbageCollected for SillyRuntimeObject {
+unsafe impl GarbageCollected for MessagePollObject {
     fn trace(&self, _visitor: &mut v8::cppgc::Visitor) {}
     fn get_name(&self) -> &'static std::ffi::CStr {
-        c"SillyRuntimeObject"
+        c"MessagePollObject"
     }
 }
 
@@ -158,7 +161,7 @@ async fn timeout(#[bigint] time: u64) {
 extension!(
     my_ext,
     ops = [send_data, timeout, serialize, deserialize, send_save_state],
-    objects = [SillyRuntimeObject],
+    objects = [MessagePollObject],
 );
 
 pub static KEYS_AVAILABLE: Mutex<bool> = Mutex::new(false);

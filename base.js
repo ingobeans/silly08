@@ -1,4 +1,4 @@
-import { send_data, timeout, serialize, deserialize, send_save_state, SillyRuntimeObject, } from "ext:core/ops";
+import { send_data, timeout, serialize, deserialize, send_save_state, MessagePollObject, } from "ext:core/ops";
 
 function constructProxy(name, items, log = false, onSet = undefined) {
     if (!log) {
@@ -218,42 +218,42 @@ let bootProcessFinished = false;
 
 let terminated = false;
 
-let runtime = new SillyRuntimeObject();
 
 globalThis.setTimeout = function (callback, time) {
     if (terminated) {
         return;
     }
     timeout(time).then(() => {
-        runtime.update();
+        let poll = MessagePollObject.poll();
 
-        if (runtime.loadState.length > 0) {
+        if (poll.loadState.length > 0) {
             print("wardjgohdguihughrf");
         }
-        terminated = terminated || runtime.shouldTerminate;
+        terminated = terminated || poll.shouldTerminate;
         if (terminated) {
             return;
         }
 
-        if (runtime.keysAvailable) {
+        if (poll.keysAvailable) {
             // track map of pressed keys for debug purposes
-            for (let k of runtime.pressedKeys) {
+            for (let k of poll.pressedKeys) {
                 heldKeys[k] = true;
             }
-            for (let k of runtime.releasedKeys) {
+            for (let k of poll.releasedKeys) {
                 heldKeys[k] = false;
             }
             shift = heldKeys["LeftShift"] == true;
 
-            sendEvents(keyEventListeners.keydown, runtime.pressedKeys, "keydown");
-            sendEvents(keyEventListeners.keyup, runtime.releasedKeys, "keyup");
+            sendEvents(keyEventListeners.keydown, poll.pressedKeys, "keydown");
+            sendEvents(keyEventListeners.keyup, poll.releasedKeys, "keyup");
 
         }
-        if (runtime.shouldSaveState) {
+        if (poll.shouldSaveState) {
             let saveState = Module.HEAPU8.slice();
             send_save_state(saveState);
+            print("runtime.shouldSaveState");
         }
-        if (runtime.loadState.length > 0) {
+        if (poll.loadState.length > 0) {
             print("Hi! got load state!");
             print("loadState length: " + loadState.length);
             print("loadState type: " + typeof loadState);
