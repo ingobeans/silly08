@@ -7,6 +7,7 @@ use deno_core::v8::ValueDeserializerHelper;
 use deno_core::v8::ValueSerializerHelper;
 use std::rc::Rc;
 use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::sync::mpsc::channel;
@@ -45,6 +46,11 @@ fn deserialize<'t>(
     serializer.read_header(context);
     serializer.read_value(context)
 }
+#[op2(fast)]
+fn send_save_state(#[buffer(copy)] data: Vec<u8>) {
+    SAVE_STATE_AVAILABLE.store(true, std::sync::atomic::Ordering::Relaxed);
+    *SAVE_STATE_DATA.lock().unwrap() = data;
+}
 
 #[op2(fast)]
 fn send_data(#[buffer(copy)] data: Vec<u8>) {
@@ -58,18 +64,19 @@ fn send_data(#[buffer(copy)] data: Vec<u8>) {
         .unwrap();
 }
 #[op2(async(lazy), fast)]
-async fn timeout(#[bigint] time: u64) -> (bool, bool, Vec<String>, Vec<String>) {
+async fn timeout(#[bigint] time: u64) -> (bool, bool, bool, bool, Vec<String>, Vec<String>) {
     tokio::time::sleep(Duration::from_millis(time)).await;
 
     let mut terminate = false;
+    let mut save_state = false;
     if time != 0 {
-        terminate = TERMINATE_RX
-            .lock()
-            .unwrap()
-            .as_mut()
-            .unwrap()
-            .try_recv()
-            .is_ok();
+        if let Ok(message) = TERMINATE_RX.lock().unwrap().as_mut().unwrap().try_recv() {
+            match message {
+                StatusMessage::Terminate => terminate = true,
+                StatusMessage::SaveState => save_state = true,
+                _ => {}
+            }
+        }
 
         let mut lock = KEYS_AVAILABLE.lock().unwrap();
         if *lock {
@@ -77,23 +84,38 @@ async fn timeout(#[bigint] time: u64) -> (bool, bool, Vec<String>, Vec<String>) 
             return (
                 true,
                 terminate,
+                save_state,
+                false,
                 PRESSED_KEYS.lock().unwrap().drain(..).collect(),
                 RELEASED_KEYS.lock().unwrap().drain(..).collect(),
             );
         }
     }
-    (false, terminate, Vec::new(), Vec::new())
+    (false, terminate, save_state, false, Vec::new(), Vec::new())
 }
 
-extension!(my_ext, ops = [send_data, timeout, serialize, deserialize]);
+extension!(
+    my_ext,
+    ops = [send_data, timeout, serialize, deserialize, send_save_state]
+);
 
 pub static KEYS_AVAILABLE: Mutex<bool> = Mutex::new(false);
 pub static RELEASED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 pub static PRESSED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 pub static SCREEN_DATA: Mutex<Vec<u8>> = Mutex::new(Vec::new());
 
+pub static SAVE_STATE_AVAILABLE: AtomicBool = AtomicBool::new(false);
+pub static SAVE_STATE_DATA: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+
 pub static MESSAGE_TX: Mutex<Option<std::sync::mpsc::Sender<Message>>> = Mutex::new(None);
-pub static TERMINATE_RX: Mutex<Option<std::sync::mpsc::Receiver<()>>> = Mutex::new(None);
+pub static TERMINATE_RX: Mutex<Option<std::sync::mpsc::Receiver<StatusMessage>>> = Mutex::new(None);
+
+#[derive(Debug)]
+pub enum StatusMessage {
+    Terminate,
+    SaveState,
+    LoadState,
+}
 
 #[derive(Debug)]
 pub enum Message {
@@ -132,7 +154,7 @@ pub fn run_thread(
 ) -> (
     std::thread::JoinHandle<Result<(), AnyError>>,
     Receiver<Message>,
-    Sender<()>,
+    Sender<StatusMessage>,
 ) {
     let (message_tx, message_rx) = channel();
     let (terminate_tx, terminate_rx) = channel();

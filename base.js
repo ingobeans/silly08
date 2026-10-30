@@ -1,4 +1,4 @@
-import { send_data, timeout, serialize, deserialize } from "ext:core/ops";
+import { send_data, timeout, serialize, deserialize, send_save_state } from "ext:core/ops";
 
 function constructProxy(name, items, log = false, onSet = undefined) {
     if (!log) {
@@ -224,7 +224,7 @@ globalThis.setTimeout = function (callback, time) {
     if (terminated) {
         return;
     }
-    timeout(time).then(([keysAvailable, shouldTerminate, pressedKeys, releasedKeys]) => {
+    timeout(time).then(([keysAvailable, shouldTerminate, shouldSaveState, shouldLoadState, pressedKeys, releasedKeys]) => {
         terminated = terminated || shouldTerminate;
         if (terminated) {
             return;
@@ -245,19 +245,26 @@ globalThis.setTimeout = function (callback, time) {
 
                 // make save state if RightShift+S is pressed
                 if (pressedKeys.includes("S")) {
-                    saveState = Module.HEAPU8.slice();
-                    print("Saved state!");
+                    shouldSaveState = true;
                 }
                 // load save state if RightShift+L is pressed
                 if (pressedKeys.includes("L") && saveState !== null) {
-                    Module.HEAPU8.set(saveState)
-                    print("Loaded state!");
+                    shouldLoadState = true;
                 }
-            } else {
-                // handle key events normally
-                sendEvents(keyEventListeners.keydown, pressedKeys, "keydown");
-                sendEvents(keyEventListeners.keyup, releasedKeys, "keyup");
             }
+
+            sendEvents(keyEventListeners.keydown, pressedKeys, "keydown");
+            sendEvents(keyEventListeners.keyup, releasedKeys, "keyup");
+
+        }
+        if (shouldSaveState) {
+            saveState = Module.HEAPU8.slice();
+            send_save_state(saveState);
+            print("Saved state!");
+        }
+        if (shouldLoadState && saveState !== null) {
+            Module.HEAPU8.set(saveState)
+            print("Loaded state!");
         }
         callback();
     });

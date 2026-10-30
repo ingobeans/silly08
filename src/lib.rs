@@ -13,11 +13,11 @@ use std::{
 use deno_core::error::AnyError;
 use libretro::*;
 
-use crate::engine::{Message, SCREEN_DATA};
+use crate::engine::{Message, SAVE_STATE_AVAILABLE, SAVE_STATE_DATA, SCREEN_DATA, StatusMessage};
 
 static JOIN_HANDLE: Mutex<Option<JoinHandle<Result<(), AnyError>>>> = Mutex::new(None);
 static MESSAGE_RX: Mutex<Option<Receiver<Message>>> = Mutex::new(None);
-static TERMINATE_TX: Mutex<Option<Sender<()>>> = Mutex::new(None);
+static TERMINATE_TX: Mutex<Option<Sender<StatusMessage>>> = Mutex::new(None);
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_api_version() -> u32 {
@@ -230,17 +230,39 @@ pub extern "C" fn retro_unload_game() {
         return;
     };
     let Some(tx) = lock.as_mut() else { return };
-    let _ = tx.send(());
+    let _ = tx.send(StatusMessage::Terminate);
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_serialize_size() -> usize {
-    return 0;
+    // from testing, hardcoded :sob:
+    return 268435456;
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_serialize(_data_: *const c_void, _size: usize) -> bool {
-    return false;
+pub extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
+    println!("serialize called!");
+    let Ok(mut lock) = TERMINATE_TX.lock() else {
+        return false;
+    };
+    let Some(tx) = lock.as_mut() else {
+        return false;
+    };
+    let Ok(_) = tx.send(StatusMessage::SaveState) else {
+        return false;
+    };
+
+    while !SAVE_STATE_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {}
+    SAVE_STATE_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
+
+    let lock = SAVE_STATE_DATA.lock().unwrap();
+    let len = lock.len().min(size);
+    unsafe {
+        std::ptr::copy(lock.as_ptr(), data, len);
+    }
+    println!("done!");
+
+    return true;
 }
 
 #[unsafe(no_mangle)]
