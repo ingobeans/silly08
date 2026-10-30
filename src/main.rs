@@ -31,7 +31,6 @@ async fn main() {
     let texture = Texture2D::from_image(&image);
     texture.set_filter(FilterMode::Nearest);
 
-    let mut booted = false;
     loop {
         if let Ok(message) = rx.try_recv() {
             match message {
@@ -40,7 +39,6 @@ async fn main() {
                     image.bytes = data;
                     texture.update(&image);
                 }
-                Message::Booted => booted = true,
                 _ => {
                     println!("{message:?}");
                 }
@@ -65,14 +63,6 @@ async fn main() {
         RELEASED_KEYS.lock().unwrap().append(&mut released);
 
         *KEYS_AVAILABLE.lock().unwrap() = true;
-
-        if booted {
-            booted = false;
-            let mut keys: Vec<String> = "run".chars().map(|a| a.to_string()).collect();
-            keys.push("Enter".to_string());
-            *PRESSED_KEYS.lock().unwrap() = keys.clone();
-            *RELEASED_KEYS.lock().unwrap() = keys;
-        }
 
         let (mut screen_w, mut screen_h) = screen_size();
         let scale = screen_dpi_scale();

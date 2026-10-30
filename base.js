@@ -91,7 +91,7 @@ function download_browser_file(...a) {
     console.log("SAVE: " + a);
 }
 
-var tempDouble, tempI64, jsString, codo_command, p8_dropped_cart, p8_dropped_cart_name, _dir_name, el, codo_key_buffer, codo_mounted_filesystem, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
+var tempDouble, tempI64, jsString, _codo_str_out, codo_command, p8_dropped_cart, p8_dropped_cart_name, _dir_name, el, codo_key_buffer, codo_mounted_filesystem, temp, codo_wheel_dx, codo_wheel_dy, button_i = undefined;
 
 
 p8_dropped_cart = sample;
@@ -195,7 +195,25 @@ globalThis.structuredClone = function (source, options) {
     return value;
 }
 
+let print = console.log;
+console.log = (...a) => {
+    if (!bootProcessFinished) {
+        if (typeof a[0] == "string") {
+            if (a[0].startsWith("loading url_str")) {
+                sendEvents(keyEventListeners.keydown, ["LeftControl", "R"], "keydown");
+                return;
+            } else if (a[0].startsWith("[codo] run_cart")) {
+                sendEvents(keyEventListeners.keyup, ["LeftControl", "R"], "keyup");
+                bootProcessFinished = true;
+            }
+        }
+    }
+    print(...a);
+};
+
 let heldKeys = {}
+
+let bootProcessFinished = false;
 
 globalThis.setTimeout = function (callback, time) {
     timeout(time).then(([keysAvailable, pressedKeys, releasedKeys]) => {

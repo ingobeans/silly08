@@ -59,12 +59,6 @@ async fn timeout(#[bigint] time: u64) -> (bool, Vec<String>, Vec<String>) {
     tokio::time::sleep(Duration::from_millis(time)).await;
 
     if time != 0 {
-        let mut lock = BOOTED.lock().unwrap();
-        if !*lock {
-            *lock = true;
-            MESSAGE_TX.get().unwrap().send(Message::Booted).unwrap();
-        }
-
         let mut lock = KEYS_AVAILABLE.lock().unwrap();
         if *lock {
             *lock = false;
@@ -87,7 +81,6 @@ pub static KEYS_AVAILABLE: Mutex<bool> = Mutex::new(false);
 pub static RELEASED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 pub static PRESSED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
-pub static BOOTED: Mutex<bool> = Mutex::new(false);
 pub static MESSAGE_TX: OnceLock<std::sync::mpsc::Sender<Message>> = OnceLock::new();
 
 #[derive(Debug)]
