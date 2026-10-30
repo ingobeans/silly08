@@ -3,7 +3,10 @@ mod libretro;
 use std::{
     ffi::c_void,
     ptr::null,
-    sync::{Mutex, mpsc::Receiver},
+    sync::{
+        Mutex,
+        mpsc::{Receiver, Sender},
+    },
     thread::JoinHandle,
 };
 
@@ -14,6 +17,7 @@ use crate::engine::{Message, SCREEN_DATA};
 
 static JOIN_HANDLE: Mutex<Option<JoinHandle<Result<(), AnyError>>>> = Mutex::new(None);
 static MESSAGE_RX: Mutex<Option<Receiver<Message>>> = Mutex::new(None);
+static TERMINATE_TX: Mutex<Option<Sender<()>>> = Mutex::new(None);
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_api_version() -> u32 {
@@ -143,9 +147,10 @@ pub extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
     let Ok(data) = std::fs::read(path) else {
         return false;
     };
-    let (handle, rx) = engine::run_thread(data);
+    let (handle, message_rx, terminate_tx) = engine::run_thread(data);
     *JOIN_HANDLE.lock().unwrap() = Some(handle);
-    *MESSAGE_RX.lock().unwrap() = Some(rx);
+    *MESSAGE_RX.lock().unwrap() = Some(message_rx);
+    *TERMINATE_TX.lock().unwrap() = Some(terminate_tx);
 
     //    struct retro_audio_callback audio_cb = { audio_callback, audio_set_state };
     //    use_audio_cb = ENVIRON_CB(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, &audio_cb);
@@ -215,10 +220,18 @@ pub extern "C" fn retro_set_environment(cb: EnvironmentFn) {
 pub extern "C" fn retro_init() {}
 
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_deinit() {}
+pub extern "C" fn retro_deinit() {
+    retro_unload_game();
+}
 
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_unload_game() {}
+pub extern "C" fn retro_unload_game() {
+    let Ok(mut lock) = TERMINATE_TX.lock() else {
+        return;
+    };
+    let Some(tx) = lock.as_mut() else { return };
+    let _ = tx.send(());
+}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_serialize_size() -> usize {

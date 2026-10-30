@@ -218,8 +218,18 @@ let bootProcessFinished = false;
 
 let saveState = null;
 
+let terminated = false;
+
 globalThis.setTimeout = function (callback, time) {
-    timeout(time).then(([keysAvailable, pressedKeys, releasedKeys]) => {
+    if (terminated) {
+        return;
+    }
+    timeout(time).then(([keysAvailable, shouldTerminate, pressedKeys, releasedKeys]) => {
+        terminated = terminated || shouldTerminate;
+        if (terminated) {
+            return;
+        }
+
         if (keysAvailable) {
             // track map of pressed keys for debug purposes
             for (let k of pressedKeys) {

@@ -20,7 +20,7 @@ async fn main() {
     } else {
         include_bytes!("../test.p8").to_vec()
     };
-    let (handle, rx) = engine::run_thread(data);
+    let (handle, rx, _) = engine::run_thread(data);
 
     let image_data: [u8; 128 * 128 * 4] = std::array::from_fn(|_| 0);
     let mut image = Image {

@@ -7,7 +7,9 @@ use deno_core::v8::ValueDeserializerHelper;
 use deno_core::v8::ValueSerializerHelper;
 use std::rc::Rc;
 use std::sync::Mutex;
-use std::sync::OnceLock;
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::Sender;
+use std::sync::mpsc::channel;
 use std::time::Duration;
 
 struct DefaultSerializer;
@@ -47,24 +49,40 @@ fn deserialize<'t>(
 #[op2(fast)]
 fn send_data(#[buffer(copy)] data: Vec<u8>) {
     *SCREEN_DATA.lock().unwrap() = data;
-    MESSAGE_TX.get().unwrap().send(Message::ScreenData).unwrap();
+    MESSAGE_TX
+        .lock()
+        .unwrap()
+        .as_mut()
+        .unwrap()
+        .send(Message::ScreenData)
+        .unwrap();
 }
 #[op2(async(lazy), fast)]
-async fn timeout(#[bigint] time: u64) -> (bool, Vec<String>, Vec<String>) {
+async fn timeout(#[bigint] time: u64) -> (bool, bool, Vec<String>, Vec<String>) {
     tokio::time::sleep(Duration::from_millis(time)).await;
 
+    let mut terminate = false;
     if time != 0 {
+        terminate = TERMINATE_RX
+            .lock()
+            .unwrap()
+            .as_mut()
+            .unwrap()
+            .try_recv()
+            .is_ok();
+
         let mut lock = KEYS_AVAILABLE.lock().unwrap();
         if *lock {
             *lock = false;
             return (
                 true,
+                terminate,
                 PRESSED_KEYS.lock().unwrap().drain(..).collect(),
                 RELEASED_KEYS.lock().unwrap().drain(..).collect(),
             );
         }
     }
-    (false, Vec::new(), Vec::new())
+    (false, terminate, Vec::new(), Vec::new())
 }
 
 extension!(my_ext, ops = [send_data, timeout, serialize, deserialize]);
@@ -74,7 +92,8 @@ pub static RELEASED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 pub static PRESSED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 pub static SCREEN_DATA: Mutex<Vec<u8>> = Mutex::new(Vec::new());
 
-pub static MESSAGE_TX: OnceLock<std::sync::mpsc::Sender<Message>> = OnceLock::new();
+pub static MESSAGE_TX: Mutex<Option<std::sync::mpsc::Sender<Message>>> = Mutex::new(None);
+pub static TERMINATE_RX: Mutex<Option<std::sync::mpsc::Receiver<()>>> = Mutex::new(None);
 
 #[derive(Debug)]
 pub enum Message {
@@ -104,6 +123,7 @@ async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
 
     js_runtime.run_event_loop(Default::default()).await?;
     result.await?;
+    println!("le done?");
     Ok(())
 }
 
@@ -111,17 +131,20 @@ pub fn run_thread(
     cart_data: Vec<u8>,
 ) -> (
     std::thread::JoinHandle<Result<(), AnyError>>,
-    std::sync::mpsc::Receiver<Message>,
+    Receiver<Message>,
+    Sender<()>,
 ) {
-    let (tx, rx) = std::sync::mpsc::channel();
+    let (message_tx, message_rx) = channel();
+    let (terminate_tx, terminate_rx) = channel();
     let handle = std::thread::spawn(move || {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .unwrap();
-        MESSAGE_TX.set(tx).unwrap();
+        *MESSAGE_TX.lock().unwrap() = Some(message_tx);
+        *TERMINATE_RX.lock().unwrap() = Some(terminate_rx);
         runtime.block_on(run(&cart_data))
     });
 
-    (handle, rx)
+    (handle, message_rx, terminate_tx)
 }
