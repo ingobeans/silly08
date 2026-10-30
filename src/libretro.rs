@@ -5,7 +5,13 @@ use std::ffi::c_void;
 pub const RETRO_API_VERSION: u32 = 1;
 pub const RETRO_DEVICE_JOYPAD: u32 = 1;
 
-pub type retro_environment_t = unsafe extern "C" fn(u32, *mut c_void) -> u8;
+// stolen from [slot](https://github.com/BrandonKowalski/slot)
+pub type EnvironmentFn = unsafe extern "C" fn(u32, *mut c_void) -> bool;
+pub type VideoRefreshFn = unsafe extern "C" fn(*const c_void, u32, u32, usize);
+pub type AudioSampleFn = unsafe extern "C" fn(i16, i16);
+pub type AudioBatchFn = unsafe extern "C" fn(*const i16, usize) -> usize;
+pub type InputPollFn = unsafe extern "C" fn();
+pub type InputStateFn = unsafe extern "C" fn(u32, u32, u32, u32) -> i16;
 
 #[repr(C)]
 pub struct retro_input_descriptor {

@@ -93,8 +93,8 @@ pub extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
 
     let mut fmt = retro_pixel_format::RETRO_PIXEL_FORMAT_RGB565;
     let res = unsafe { cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &mut fmt as *mut _ as _) };
-    if res == 0 {
-        println!("XRGB8888 is not supported.");
+    if !res {
+        println!("Pixel format is not supported.");
         return false;
     }
 
@@ -132,36 +132,36 @@ pub extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
 
 // callback setters
 
-static ENVIRON_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
-static VIDEO_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
-static AUDIO_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
-static AUDIO_BATCH_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
-static INPUT_POLL_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
-static INPUT_STATE_CB: Mutex<Option<retro_environment_t>> = Mutex::new(None);
+static ENVIRON_CB: Mutex<Option<EnvironmentFn>> = Mutex::new(None);
+static VIDEO_CB: Mutex<Option<VideoRefreshFn>> = Mutex::new(None);
+static AUDIO_CB: Mutex<Option<AudioSampleFn>> = Mutex::new(None);
+static AUDIO_BATCH_CB: Mutex<Option<AudioBatchFn>> = Mutex::new(None);
+static INPUT_POLL_CB: Mutex<Option<InputPollFn>> = Mutex::new(None);
+static INPUT_STATE_CB: Mutex<Option<InputStateFn>> = Mutex::new(None);
 
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_set_video_refresh(cb: retro_environment_t) {
+pub extern "C" fn retro_set_video_refresh(cb: VideoRefreshFn) {
     *VIDEO_CB.lock().unwrap() = Some(cb);
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_set_audio_sample(cb: retro_environment_t) {
+pub extern "C" fn retro_set_audio_sample(cb: AudioSampleFn) {
     *AUDIO_CB.lock().unwrap() = Some(cb);
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_set_audio_sample_batch(cb: retro_environment_t) {
+pub extern "C" fn retro_set_audio_sample_batch(cb: AudioBatchFn) {
     *AUDIO_BATCH_CB.lock().unwrap() = Some(cb);
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_set_input_poll(cb: retro_environment_t) {
+pub extern "C" fn retro_set_input_poll(cb: InputPollFn) {
     *INPUT_POLL_CB.lock().unwrap() = Some(cb);
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_set_input_state(cb: retro_environment_t) {
+pub extern "C" fn retro_set_input_state(cb: InputStateFn) {
     *INPUT_STATE_CB.lock().unwrap() = Some(cb);
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_set_environment(cb: retro_environment_t) {
+pub extern "C" fn retro_set_environment(cb: EnvironmentFn) {
     *ENVIRON_CB.lock().unwrap() = Some(cb);
 
     //    if (cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &logging))
