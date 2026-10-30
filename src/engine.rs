@@ -46,11 +46,8 @@ fn deserialize<'t>(
 
 #[op2(fast)]
 fn send_data(#[buffer(copy)] data: Vec<u8>) {
-    MESSAGE_TX
-        .get()
-        .unwrap()
-        .send(Message::ScreenData(data))
-        .unwrap();
+    *SCREEN_DATA.lock().unwrap() = data;
+    MESSAGE_TX.get().unwrap().send(Message::ScreenData).unwrap();
 }
 #[op2(async(lazy), fast)]
 async fn timeout(#[bigint] time: u64) -> (bool, Vec<String>, Vec<String>) {
@@ -75,12 +72,13 @@ extension!(my_ext, ops = [send_data, timeout, serialize, deserialize]);
 pub static KEYS_AVAILABLE: Mutex<bool> = Mutex::new(false);
 pub static RELEASED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 pub static PRESSED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+pub static SCREEN_DATA: Mutex<Vec<u8>> = Mutex::new(Vec::new());
 
 pub static MESSAGE_TX: OnceLock<std::sync::mpsc::Sender<Message>> = OnceLock::new();
 
 #[derive(Debug)]
 pub enum Message {
-    ScreenData(Vec<u8>),
+    ScreenData,
 }
 
 async fn run(cart_data: &[u8]) -> Result<(), AnyError> {

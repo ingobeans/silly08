@@ -1,6 +1,6 @@
 use macroquad::{miniquad::window::screen_size, prelude::*};
 
-use crate::engine::{KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS};
+use crate::engine::{KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS, SCREEN_DATA};
 
 mod engine;
 
@@ -34,9 +34,10 @@ async fn main() {
     loop {
         if let Ok(message) = rx.try_recv() {
             match message {
-                Message::ScreenData(data) => {
+                Message::ScreenData => {
+                    let data = SCREEN_DATA.lock().unwrap();
                     assert_eq!(data.len(), image.bytes.len());
-                    image.bytes = data;
+                    image.bytes = data.clone();
                     texture.update(&image);
                 }
             }
