@@ -63,18 +63,24 @@ fn send_data(#[buffer(copy)] data: Vec<u8>) {
         .send(Message::ScreenData)
         .unwrap();
 }
+
 #[op2(async(lazy), fast)]
-async fn timeout(#[bigint] time: u64) -> (bool, bool, bool, bool, Vec<String>, Vec<String>) {
+// todo: refactor the return type of this function :sob:
+async fn timeout(#[bigint] time: u64) -> (bool, bool, bool, Vec<u8>, Vec<String>, Vec<String>) {
     tokio::time::sleep(Duration::from_millis(time)).await;
 
     let mut terminate = false;
     let mut save_state = false;
+    let mut load_state = Vec::new();
     if time != 0 {
         if let Ok(message) = TERMINATE_RX.lock().unwrap().as_mut().unwrap().try_recv() {
             match message {
                 StatusMessage::Terminate => terminate = true,
                 StatusMessage::SaveState => save_state = true,
-                _ => {}
+                StatusMessage::LoadState(data) => {
+                    println!("wah");
+                    load_state = data
+                }
             }
         }
 
@@ -85,13 +91,20 @@ async fn timeout(#[bigint] time: u64) -> (bool, bool, bool, bool, Vec<String>, V
                 true,
                 terminate,
                 save_state,
-                false,
+                load_state,
                 PRESSED_KEYS.lock().unwrap().drain(..).collect(),
                 RELEASED_KEYS.lock().unwrap().drain(..).collect(),
             );
         }
     }
-    (false, terminate, save_state, false, Vec::new(), Vec::new())
+    (
+        false,
+        terminate,
+        save_state,
+        load_state,
+        Vec::new(),
+        Vec::new(),
+    )
 }
 
 extension!(
@@ -115,7 +128,7 @@ pub static TERMINATE_RX: Mutex<Option<std::sync::mpsc::Receiver<StatusMessage>>>
 pub enum StatusMessage {
     Terminate,
     SaveState,
-    LoadState,
+    LoadState(Vec<u8>),
 }
 
 #[derive(Debug)]

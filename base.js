@@ -216,15 +216,16 @@ let heldKeys = {}
 
 let bootProcessFinished = false;
 
-let saveState = null;
-
 let terminated = false;
 
 globalThis.setTimeout = function (callback, time) {
     if (terminated) {
         return;
     }
-    timeout(time).then(([keysAvailable, shouldTerminate, shouldSaveState, shouldLoadState, pressedKeys, releasedKeys]) => {
+    timeout(time).then(([keysAvailable, shouldTerminate, shouldSaveState, loadState, pressedKeys, releasedKeys]) => {
+        if (loadState.length > 0) {
+            print("wardjgohdguihughrf");
+        }
         terminated = terminated || shouldTerminate;
         if (terminated) {
             return;
@@ -240,29 +241,20 @@ globalThis.setTimeout = function (callback, time) {
             }
             shift = heldKeys["LeftShift"] == true;
 
-            if (heldKeys["RightShift"]) {
-                // when RightShift is held, handle specific behaviours
-
-                // make save state if RightShift+S is pressed
-                if (pressedKeys.includes("S")) {
-                    shouldSaveState = true;
-                }
-                // load save state if RightShift+L is pressed
-                if (pressedKeys.includes("L") && saveState !== null) {
-                    shouldLoadState = true;
-                }
-            }
-
             sendEvents(keyEventListeners.keydown, pressedKeys, "keydown");
             sendEvents(keyEventListeners.keyup, releasedKeys, "keyup");
 
         }
         if (shouldSaveState) {
-            saveState = Module.HEAPU8.slice();
+            let saveState = Module.HEAPU8.slice();
             send_save_state(saveState);
         }
-        if (shouldLoadState && saveState !== null) {
-            Module.HEAPU8.set(saveState)
+        if (loadState.length > 0) {
+            print("Hi! got load state!");
+            print("loadState length: " + loadState.length);
+            print("loadState type: " + typeof loadState);
+            print("loadState instanceof Uint8Array: " + loadState instanceof Uint8Array);
+            Module.HEAPU8.set(loadState);
         }
         callback();
     });
