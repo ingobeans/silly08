@@ -30,3 +30,14 @@ pub extern "C" fn retro_get_system_info(info: *mut retro_system_info) {
         (*info).valid_extensions = "".as_ptr();
     }
 }
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_get_system_av_info(info: *mut retro_system_av_info) {
+    unsafe {
+        (*info).geometry.base_width = 128;
+        (*info).geometry.base_height = 128;
+        (*info).geometry.max_width = 128;
+        (*info).geometry.max_height = 128;
+        (*info).geometry.aspect_ratio = 1.0;
+    }
+}
