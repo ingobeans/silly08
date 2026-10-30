@@ -216,6 +216,8 @@ let heldKeys = {}
 
 let bootProcessFinished = false;
 
+let saveState = null;
+
 globalThis.setTimeout = function (callback, time) {
     timeout(time).then(([keysAvailable, pressedKeys, releasedKeys]) => {
         if (keysAvailable) {
@@ -228,22 +230,25 @@ globalThis.setTimeout = function (callback, time) {
             }
             shift = heldKeys["LeftShift"] == true;
 
-            sendEvents(keyEventListeners.keydown, pressedKeys, "keydown");
-            sendEvents(keyEventListeners.keyup, releasedKeys, "keyup");
-            if (pressedKeys.includes("RightShift")) {
-                console.log(codo_command);
+            if (heldKeys["RightShift"]) {
+                // when RightShift is held, handle specific behaviours
+
+                // make save state if RightShift+S is pressed
+                if (pressedKeys.includes("S")) {
+                    saveState = Module.HEAPU8.slice();
+                    print("Saved state!");
+                }
+                // load save state if RightShift+L is pressed
+                if (pressedKeys.includes("L") && saveState !== null) {
+                    Module.HEAPU8.set(saveState)
+                    print("Loaded state!");
+                }
+            } else {
+                // handle key events normally
+                sendEvents(keyEventListeners.keydown, pressedKeys, "keydown");
+                sendEvents(keyEventListeners.keyup, releasedKeys, "keyup");
             }
         }
         callback();
     });
-}
-
-function serializeNonFunctions(obj) {
-    let newObj = structuredClone(obj);
-    for (let [k, v] of Object.entries(newObj)) {
-        if (typeof v == "function") {
-            newObj[k] = undefined;
-        }
-    }
-    return serialize(newObj);
 }
