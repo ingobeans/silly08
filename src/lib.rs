@@ -14,7 +14,10 @@ use std::{
 use deno_core::error::AnyError;
 use libretro::*;
 
-use crate::engine::{Message, SAVE_STATE_AVAILABLE, SAVE_STATE_DATA, SCREEN_DATA, StatusMessage};
+use crate::engine::{
+    KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS, SAVE_STATE_AVAILABLE, SAVE_STATE_DATA,
+    SCREEN_DATA, StatusMessage,
+};
 
 static JOIN_HANDLE: Mutex<Option<JoinHandle<Result<(), AnyError>>>> = Mutex::new(None);
 static MESSAGE_RX: Mutex<Option<Receiver<Message>>> = Mutex::new(None);
@@ -58,11 +61,46 @@ fn rgba_to_xrgb8888(buf: &mut [u8]) {
     }
 }
 
+static KEY_MAP: Mutex<[bool; BUTTONS.len()]> = Mutex::new([false; _]);
+
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_run() {
-    let Some(cb) = *VIDEO_CB.lock().unwrap() else {
-        return;
-    };
+    let input_poll_cb = INPUT_POLL_CB
+        .lock()
+        .unwrap()
+        .expect("Can't run without input_poll_cb set.");
+    let video_cb = VIDEO_CB
+        .lock()
+        .unwrap()
+        .expect("Can't run without video_cb set.");
+    let input_state_cb = INPUT_STATE_CB
+        .lock()
+        .unwrap()
+        .expect("Can't run without input_state_cb set.");
+
+    unsafe {
+        input_poll_cb();
+    }
+
+    let mut key_map_lock = KEY_MAP.lock().unwrap();
+    let mut pressed_keys_lock = PRESSED_KEYS.lock().unwrap();
+    let mut released_keys_lock = RELEASED_KEYS.lock().unwrap();
+
+    for (index, (button, _, key)) in BUTTONS.iter().enumerate() {
+        let state = unsafe { input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, *button) } == 1;
+
+        if state && !key_map_lock[index] {
+            // key became pressed down
+            pressed_keys_lock.push(key.to_string());
+        } else if !state && key_map_lock[index] {
+            // key was released
+            released_keys_lock.push(key.to_string());
+        }
+
+        key_map_lock[index] = state;
+    }
+    *KEYS_AVAILABLE.lock().unwrap() = true;
+
     let mut data = SCREEN_DATA.lock().unwrap().clone();
     if data.is_empty() {
         return;
@@ -71,18 +109,18 @@ pub extern "C" fn retro_run() {
         assert_eq!(data.len(), 128 * 128 * 4);
         // data.rotate_right(1); // rgba -> xrgb
         rgba_to_xrgb8888(&mut data);
-        cb(data.as_ptr() as _, 128, 128, 4 * 128);
+        video_cb(data.as_ptr() as _, 128, 128, 4 * 128);
     }
 }
 
-pub static BUTTONS: &[(u32, &str)] = &[
-    (RETRO_DEVICE_ID_JOYPAD_LEFT, "Left"),
-    (RETRO_DEVICE_ID_JOYPAD_UP, "Up"),
-    (RETRO_DEVICE_ID_JOYPAD_DOWN, "Down"),
-    (RETRO_DEVICE_ID_JOYPAD_RIGHT, "Right"),
-    (RETRO_DEVICE_ID_JOYPAD_B, "Button O"),
-    (RETRO_DEVICE_ID_JOYPAD_A, "Button X"),
-    (RETRO_DEVICE_ID_JOYPAD_START, "Button Pause"),
+pub static BUTTONS: &[(u32, &str, &str)] = &[
+    (RETRO_DEVICE_ID_JOYPAD_LEFT, "Left", "Left"),
+    (RETRO_DEVICE_ID_JOYPAD_UP, "Up", "Up"),
+    (RETRO_DEVICE_ID_JOYPAD_DOWN, "Down", "Down"),
+    (RETRO_DEVICE_ID_JOYPAD_RIGHT, "Right", "Right"),
+    (RETRO_DEVICE_ID_JOYPAD_A, "Button O", "Z"),
+    (RETRO_DEVICE_ID_JOYPAD_B, "Button X", "X"),
+    (RETRO_DEVICE_ID_JOYPAD_START, "Button Pause", "Enter"),
 ];
 
 #[unsafe(no_mangle)]
