@@ -50,8 +50,8 @@ fn deserialize<'t>(
 }
 #[op2(fast)]
 fn send_save_state(#[buffer(copy)] data: Vec<u8>) {
-    SAVE_STATE_AVAILABLE.store(true, std::sync::atomic::Ordering::Relaxed);
     *SAVE_STATE_DATA.lock().unwrap() = data;
+    SAVE_STATE_AVAILABLE.store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
 #[op2(fast)]
