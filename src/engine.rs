@@ -110,6 +110,7 @@ pub static SAVE_STATE_DATA: Mutex<Vec<u8>> = Mutex::new(Vec::new());
 pub static MESSAGE_TX: Mutex<Option<std::sync::mpsc::Sender<Message>>> = Mutex::new(None);
 pub static TERMINATE_RX: Mutex<Option<std::sync::mpsc::Receiver<StatusMessage>>> = Mutex::new(None);
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum StatusMessage {
     Terminate,

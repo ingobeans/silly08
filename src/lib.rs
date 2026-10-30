@@ -1,3 +1,4 @@
+#![allow(clippy::missing_safety_doc)]
 mod engine;
 mod libretro;
 use std::{
@@ -21,7 +22,7 @@ static TERMINATE_TX: Mutex<Option<Sender<StatusMessage>>> = Mutex::new(None);
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_api_version() -> u32 {
-    return RETRO_API_VERSION;
+    RETRO_API_VERSION
 }
 
 #[unsafe(no_mangle)]
@@ -30,7 +31,7 @@ pub extern "C" fn retro_set_controller_port_device(port: u32, device: u32) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_get_system_info(info: *mut retro_system_info) {
+pub unsafe extern "C" fn retro_get_system_info(info: *mut retro_system_info) {
     unsafe {
         (*info).library_name = "silly08".as_ptr();
         (*info).library_version = env!("CARGO_PKG_VERSION").as_ptr();
@@ -40,7 +41,7 @@ pub extern "C" fn retro_get_system_info(info: *mut retro_system_info) {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_get_system_av_info(info: *mut retro_system_av_info) {
+pub unsafe extern "C" fn retro_get_system_av_info(info: *mut retro_system_av_info) {
     unsafe {
         (*info).geometry.base_width = 128;
         (*info).geometry.base_height = 128;
@@ -53,9 +54,7 @@ fn rgba_to_xrgb8888(buf: &mut [u8]) {
     for pixel in buf.chunks_exact_mut(4) {
         // found through testing,
         // dont know why the red and blue channels are swapped but whatever
-        let old_b = pixel[2];
-        pixel[2] = pixel[0];
-        pixel[0] = old_b;
+        pixel.swap(2, 0);
     }
 }
 
@@ -65,7 +64,7 @@ pub extern "C" fn retro_run() {
         return;
     };
     let mut data = SCREEN_DATA.lock().unwrap().clone();
-    if data.len() == 0 {
+    if data.is_empty() {
         return;
     }
     unsafe {
@@ -77,7 +76,7 @@ pub extern "C" fn retro_run() {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
+pub unsafe extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
     let desc: &mut [retro_input_descriptor] = &mut [
         retro_input_descriptor {
             port: 0,
@@ -158,7 +157,7 @@ pub extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
     //    check_variables();
 
     //    (void)info;
-    return true;
+    true
 }
 
 // callback setters
@@ -236,12 +235,11 @@ pub extern "C" fn retro_unload_game() {
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_serialize_size() -> usize {
     // from testing, hardcoded :sob:
-    return 268435456;
+    268435456
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
-    println!("serialize called!");
+pub unsafe extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
     let Ok(mut lock) = TERMINATE_TX.lock() else {
         return false;
     };
@@ -252,7 +250,9 @@ pub extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
         return false;
     };
 
-    while !SAVE_STATE_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {}
+    while !SAVE_STATE_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
+        std::hint::spin_loop();
+    }
     SAVE_STATE_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
 
     let lock = SAVE_STATE_DATA.lock().unwrap();
@@ -260,22 +260,21 @@ pub extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
     unsafe {
         std::ptr::copy(lock.as_ptr(), data, len);
     }
-    println!("done!");
 
-    return true;
+    true
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_unserialize(_data_: *const c_void, _size: usize) -> bool {
-    return false;
+    false
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_get_memory_data(_id: u32) -> *const c_void {
-    return null();
+    null()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_get_memory_size(_id: u32) -> usize {
-    return 0;
+    0
 }

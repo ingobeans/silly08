@@ -260,11 +260,9 @@ globalThis.setTimeout = function (callback, time) {
         if (shouldSaveState) {
             saveState = Module.HEAPU8.slice();
             send_save_state(saveState);
-            print("Saved state!");
         }
         if (shouldLoadState && saveState !== null) {
             Module.HEAPU8.set(saveState)
-            print("Loaded state!");
         }
         callback();
     });

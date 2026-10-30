@@ -262,9 +262,9 @@ pub enum retro_pixel_format {
 
     /**
      * @private Defined to ensure that <tt>sizeof(retro_pixel_format) == sizeof(int)</tt>.
-    	* Do not use.
-    	*/
-    RETRO_PIXEL_FORMAT_UNKNOWN = u32::MAX as _,
+     * Do not use.
+     */
+    RETRO_PIXEL_FORMAT_UNKNOWN = i32::MAX as _,
 }
 
 /**
@@ -362,20 +362,12 @@ pub const RETRO_DEVICE_ID_JOYPAD_R3: u32 = 15;
  */
 pub const RETRO_DEVICE_ID_JOYPAD_MASK: u32 = 256;
 
-/** @} */
-
-/** @defgroup RETRO_DEVICE_ID_ANALOG Analog RetroPad Input
- * @{
- */
-
 /* Index / Id values for ANALOG device. */
 pub const RETRO_DEVICE_INDEX_ANALOG_LEFT: u32 = 0;
 pub const RETRO_DEVICE_INDEX_ANALOG_RIGHT: u32 = 1;
 pub const RETRO_DEVICE_INDEX_ANALOG_BUTTON: u32 = 2;
 pub const RETRO_DEVICE_ID_ANALOG_X: u32 = 0;
 pub const RETRO_DEVICE_ID_ANALOG_Y: u32 = 1;
-
-/** @} */
 
 /* Id values for MOUSE. */
 pub const RETRO_DEVICE_ID_MOUSE_X: u32 = 0;
