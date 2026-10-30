@@ -51,16 +51,24 @@ async fn main() {
         if is_key_down(KeyCode::RightShift) {
             if is_key_pressed(KeyCode::S) {
                 sender_tx.send(StatusMessage::SaveState).unwrap();
-                println!("savestate");
 
                 while !SAVE_STATE_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
                     std::hint::spin_loop();
                 }
                 SAVE_STATE_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
 
+                let mut save_data = Vec::new();
                 let mut lock = SAVE_STATE_DATA.lock().unwrap();
-                save_state = Some(lock.drain(..).collect());
-                println!("savedstate");
+                std::mem::swap(&mut save_data, &mut lock);
+                save_state = Some(save_data);
+                println!("saved state!");
+            } else if is_key_pressed(KeyCode::A)
+                && let Some(save_state) = save_state.take()
+            {
+                sender_tx
+                    .send(StatusMessage::LoadState(save_state))
+                    .unwrap();
+                println!("loadstate");
             }
         } else {
             if handle.is_finished() {

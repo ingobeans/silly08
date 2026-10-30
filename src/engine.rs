@@ -71,7 +71,7 @@ pub struct MessagePollObject {
     keys_available: GcCell<bool>,
     should_terminate: GcCell<bool>,
     should_save_state: GcCell<bool>,
-    load_state: GcCell<Vec<u8>>,
+    should_load_state: GcCell<bool>,
     pressed_keys: GcCell<Vec<String>>,
     released_keys: GcCell<Vec<String>>,
 }
@@ -93,8 +93,8 @@ impl MessagePollObject {
         *self.should_save_state.get(isolate)
     }
     #[getter]
-    fn load_state(&self, isolate: &v8::Isolate) -> Vec<u8> {
-        self.load_state.get(isolate).clone()
+    fn should_load_state(&self, isolate: &v8::Isolate) -> bool {
+        *self.should_load_state.get(isolate)
     }
     #[getter]
     fn pressed_keys(&self, isolate: &v8::Isolate) -> Vec<String> {
@@ -107,19 +107,20 @@ impl MessagePollObject {
 
     #[static_method]
     #[cppgc]
-    fn poll() -> MessagePollObject {
+    fn poll(#[buffer] load_state: &mut [u8]) -> MessagePollObject {
         let mut should_terminate = false;
         let mut should_save_state = false;
+        let mut should_load_state = false;
 
-        let mut load_state = Vec::new();
+        // let mut load_state = Vec::new();
 
         if let Ok(message) = TERMINATE_RX.lock().unwrap().as_mut().unwrap().try_recv() {
             match message {
                 StatusMessage::Terminate => should_terminate = true,
                 StatusMessage::SaveState => should_save_state = true,
                 StatusMessage::LoadState(data) => {
-                    println!("wah");
-                    load_state = data;
+                    should_load_state = true;
+                    load_state.copy_from_slice(&data);
                 }
             }
         }
@@ -141,7 +142,7 @@ impl MessagePollObject {
             keys_available: GcCell::new(keys_available),
             pressed_keys: GcCell::new(pressed_keys),
             released_keys: GcCell::new(released_keys),
-            load_state: GcCell::new(load_state),
+            should_load_state: GcCell::new(should_load_state),
         }
     }
 }
@@ -211,7 +212,6 @@ async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
 
     js_runtime.run_event_loop(Default::default()).await?;
     result.await?;
-    println!("le done?");
     Ok(())
 }
 

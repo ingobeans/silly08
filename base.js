@@ -218,17 +218,15 @@ let bootProcessFinished = false;
 
 let terminated = false;
 
+let loadState = new Uint8Array(268435456);
 
 globalThis.setTimeout = function (callback, time) {
     if (terminated) {
         return;
     }
     timeout(time).then(() => {
-        let poll = MessagePollObject.poll();
+        let poll = MessagePollObject.poll(loadState);
 
-        if (poll.loadState.length > 0) {
-            print("wardjgohdguihughrf");
-        }
         terminated = terminated || poll.shouldTerminate;
         if (terminated) {
             return;
@@ -251,13 +249,8 @@ globalThis.setTimeout = function (callback, time) {
         if (poll.shouldSaveState) {
             let saveState = Module.HEAPU8.slice();
             send_save_state(saveState);
-            print("runtime.shouldSaveState");
         }
-        if (poll.loadState.length > 0) {
-            print("Hi! got load state!");
-            print("loadState length: " + loadState.length);
-            print("loadState type: " + typeof loadState);
-            print("loadState instanceof Uint8Array: " + loadState instanceof Uint8Array);
+        if (poll.shouldLoadState) {
             Module.HEAPU8.set(loadState);
         }
 
