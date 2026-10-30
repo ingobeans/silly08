@@ -93,8 +93,8 @@ async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
         "let sample = `data:application/pkcs8;base64,{}`;",
         BASE64_STANDARD.encode(cart_data)
     );
-    let base = std::fs::read_to_string("base.js")?;
-    let file = std::fs::read_to_string("edu.js")?;
+    let base = include_str!("../base.js");
+    let file = include_str!("../edu.js");
     let code = format!("{cart}\n{base}\n{file}");
 
     let mod_id = js_runtime

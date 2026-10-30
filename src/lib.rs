@@ -10,7 +10,7 @@ use std::{
 use deno_core::error::AnyError;
 use libretro::*;
 
-use crate::engine::Message;
+use crate::engine::{Message, SCREEN_DATA};
 
 static JOIN_HANDLE: Mutex<Option<JoinHandle<Result<(), AnyError>>>> = Mutex::new(None);
 static MESSAGE_RX: Mutex<Option<Receiver<Message>>> = Mutex::new(None);
@@ -43,6 +43,21 @@ pub extern "C" fn retro_get_system_av_info(info: *mut retro_system_av_info) {
         (*info).geometry.max_width = 128;
         (*info).geometry.max_height = 128;
         (*info).geometry.aspect_ratio = 1.0;
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_run() {
+    let Some(cb) = *VIDEO_CB.lock().unwrap() else {
+        return;
+    };
+    let data = SCREEN_DATA.lock().unwrap().clone();
+    if data.len() == 0 {
+        return;
+    }
+    unsafe {
+        assert_eq!(data.len(), 128 * 128 * 4);
+        cb(data.as_ptr() as _, 128, 128, 4);
     }
 }
 
@@ -193,9 +208,6 @@ pub extern "C" fn retro_deinit() {}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_unload_game() {}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn retro_run() {}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_serialize_size() -> usize {
