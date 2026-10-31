@@ -1,10 +1,13 @@
 [package]
 name = "silly08"
-version = "0.2.11"
+version = "0.3.22"
 edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
 
 [dependencies]
 base64 = "0.23.1"
 deno_core = "0.413.0"
-macroquad = "0.4.16"
 tokio = { version = "1.54.1", features = ["full"] }
+macroquad = { version = "0.4.16" }

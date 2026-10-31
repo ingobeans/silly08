@@ -1,4 +1,8 @@
-import { send_data, timeout, serialize, deserialize } from "ext:core/ops";
+import { send_data, timeout, send_save_state, MessagePollObject, } from "ext:core/ops";
+
+// replaced by engine.rs
+// (in practice, replaces first occurence of the number one, so dont change the placeholder value)
+const SAVED_MEMORY_SIZE = 1;
 
 function constructProxy(name, items, log = false, onSet = undefined) {
     if (!log) {
@@ -216,39 +220,44 @@ let heldKeys = {}
 
 let bootProcessFinished = false;
 
-let saveState = null;
+let terminated = false;
+
+let loadState = new Uint8Array(SAVED_MEMORY_SIZE);
 
 globalThis.setTimeout = function (callback, time) {
-    timeout(time).then(([keysAvailable, pressedKeys, releasedKeys]) => {
-        if (keysAvailable) {
+    if (terminated) {
+        return;
+    }
+    timeout(time).then(() => {
+        let poll = MessagePollObject.poll(loadState);
+
+        terminated = terminated || poll.shouldTerminate;
+        if (terminated) {
+            return;
+        }
+
+        if (poll.keysAvailable) {
             // track map of pressed keys for debug purposes
-            for (let k of pressedKeys) {
+            for (let k of poll.pressedKeys) {
                 heldKeys[k] = true;
             }
-            for (let k of releasedKeys) {
+            for (let k of poll.releasedKeys) {
                 heldKeys[k] = false;
             }
             shift = heldKeys["LeftShift"] == true;
 
-            if (heldKeys["RightShift"]) {
-                // when RightShift is held, handle specific behaviours
+            sendEvents(keyEventListeners.keydown, poll.pressedKeys, "keydown");
+            sendEvents(keyEventListeners.keyup, poll.releasedKeys, "keyup");
 
-                // make save state if RightShift+S is pressed
-                if (pressedKeys.includes("S")) {
-                    saveState = Module.HEAPU8.slice();
-                    print("Saved state!");
-                }
-                // load save state if RightShift+L is pressed
-                if (pressedKeys.includes("L") && saveState !== null) {
-                    Module.HEAPU8.set(saveState)
-                    print("Loaded state!");
-                }
-            } else {
-                // handle key events normally
-                sendEvents(keyEventListeners.keydown, pressedKeys, "keydown");
-                sendEvents(keyEventListeners.keyup, releasedKeys, "keyup");
-            }
         }
+        if (poll.shouldSaveState) {
+            let saveState = Module.HEAPU8.slice(0, SAVED_MEMORY_SIZE);
+            send_save_state(saveState);
+        }
+        if (poll.shouldLoadState) {
+            Module.HEAPU8.set(loadState);
+        }
+
         callback();
     });
 }

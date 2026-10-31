@@ -2,6 +2,7 @@ edu.js
 fake-indexeddb.js
 *.p8*
 !test.p8
+*.bin
 
 /target
 /node_modules
