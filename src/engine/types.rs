@@ -5,6 +5,29 @@ use std::sync::{
 
 use crate::engine::*;
 
+pub struct ScreenDataManager {
+    inner: Mutex<Vec<u8>>,
+    new_frame_available: AtomicBool,
+}
+impl ScreenDataManager {
+    pub const fn new() -> Self {
+        Self {
+            inner: Mutex::new(Vec::new()),
+            new_frame_available: AtomicBool::new(false),
+        }
+    }
+    pub fn write_frame_data(&self, data: Vec<u8>) {
+        *self.inner.lock().unwrap() = data;
+        self.new_frame_available.store(true, Ordering::Relaxed);
+    }
+    pub fn get_new_frame(&self) -> Option<MutexGuard<'_, Vec<u8>>> {
+        if self.new_frame_available.load(Ordering::Relaxed) {
+            return Some(self.inner.lock().unwrap());
+        }
+        None
+    }
+}
+
 struct SaveCtx {
     dest_ptr: *mut u8,
     requested_save: bool,
@@ -60,11 +83,12 @@ impl SaveStateManager {
     ///
     /// Returns whether load was requested & successful
     pub fn load_internal_save_if_requested(&self, dest: &mut [u8]) -> bool {
-        let lock = self.load_inner.lock().unwrap();
+        let mut lock = self.load_inner.lock().unwrap();
 
         if !lock.requested_load {
             return false;
         }
+        lock.requested_load = false;
 
         if lock.src_ptr.is_null() {
             panic!("lock.src_ptr.is_null()");
@@ -99,7 +123,10 @@ impl SaveStateManager {
     /// Note: memory_data should not contain the header.
     /// Intended for internal use.
     pub fn write_internal_save(&self, memory_data: &[u8]) {
-        let lock = self.save_inner.lock().unwrap();
+        let mut lock = self.save_inner.lock().unwrap();
+
+        assert!(lock.requested_save);
+        lock.requested_save = false;
 
         if lock.dest_ptr.is_null() {
             panic!("lock.dest_ptr.is_null()");
@@ -127,6 +154,7 @@ impl SaveStateManager {
     pub fn load_save(&self, src_ptr: *const u8) {
         let mut lock = self.load_inner.lock().unwrap();
         assert!(!lock.requested_load);
+        lock.requested_load = true;
 
         self.load_state_complete.store(false, Ordering::Relaxed);
         lock.src_ptr = src_ptr;
@@ -142,6 +170,7 @@ impl SaveStateManager {
     pub fn get_save(&self, dest_ptr: *mut u8) {
         let mut lock = self.save_inner.lock().unwrap();
         assert!(!lock.requested_save);
+        lock.requested_save = true;
 
         self.save_state_available.store(false, Ordering::Relaxed);
         lock.dest_ptr = dest_ptr;

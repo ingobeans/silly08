@@ -12,8 +12,7 @@ fn send_save_state(#[buffer(copy)] data: Vec<u8>) {
 
 #[op2(fast)]
 fn send_data(#[buffer(copy)] data: Vec<u8>) {
-    // currently broken
-    *SCREEN_DATA.lock().unwrap() = data;
+    SCREEN_DATA_MANAGER.write_frame_data(data);
 }
 
 #[repr(C)]

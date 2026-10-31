@@ -1,11 +1,6 @@
 use base64::prelude::*;
 use deno_core::{GarbageCollected, cppgc::GcCell, error::AnyError, extension, v8};
-use std::{
-    rc::Rc,
-    sync::{Mutex, atomic::AtomicBool},
-    thread::JoinHandle,
-    time::Duration,
-};
+use std::{rc::Rc, sync::atomic::AtomicBool, thread::JoinHandle, time::Duration};
 
 use crate::engine::js_glue::my_ext;
 pub use crate::engine::types::*;
@@ -34,7 +29,7 @@ pub static KEY_STATE: KeyState = KeyState::new();
 pub static SAVE_STATE_MANAGER: SaveStateManager = SaveStateManager::new();
 pub static SHOULD_TERMINATE: AtomicBool = AtomicBool::new(false);
 
-pub static SCREEN_DATA: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+pub static SCREEN_DATA_MANAGER: ScreenDataManager = ScreenDataManager::new();
 
 // Runtime:
 
