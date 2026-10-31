@@ -267,7 +267,10 @@ pub extern "C" fn retro_serialize_size() -> usize {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
-    assert_eq!(size, SAVE_STATE_SIZE);
+    if size != SAVE_STATE_SIZE {
+        return false;
+    }
+
     let Ok(mut lock) = TERMINATE_TX.lock() else {
         return false;
     };
@@ -288,7 +291,9 @@ pub unsafe extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_unserialize(data: *const u8, size: usize) -> bool {
-    // assert_eq!(size, SAVE_STATE_SIZE);
+    if size != SAVE_STATE_SIZE {
+        return false;
+    }
 
     let Ok(mut lock) = TERMINATE_TX.lock() else {
         return false;
