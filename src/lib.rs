@@ -91,13 +91,16 @@ pub extern "C" fn retro_run() {
         key_map_lock[index] = key_state;
     }
 
-    if let Some(data) = SCREEN_DATA_MANAGER.get_new_frame() {
-        let mut data = data.clone();
+    if let Some(mut data) = SCREEN_DATA_MANAGER.get_new_frame() {
         unsafe {
             assert_eq!(data.len(), SCREEN_DATA_SIZE);
             // data.rotate_right(1); // rgba -> xrgb
             rgba_to_xrgb8888(&mut data);
             video_cb(data.as_ptr() as _, 128, 128, 4 * 128);
+
+            // idk if this is needed, but i want to ensure the mutex lock is held until
+            // video_cb finishes.
+            drop(data)
         }
     }
 }

@@ -20,6 +20,7 @@ async fn main() {
     } else {
         include_bytes!("../test.p8").to_vec()
     };
+
     let handle = run_thread(data);
 
     let texture = Texture2D::from_rgba8(128, 128, &[0; SCREEN_DATA_SIZE]);
@@ -33,20 +34,23 @@ async fn main() {
             texture.update_from_bytes(128, 128, &data);
         }
 
+        if handle.is_finished() {
+            // print result of thread if it fails early
+            let err = handle.join().unwrap();
+            panic!("{err:?}");
+        }
+
         if is_key_down(KeyCode::RightShift) {
+            // While right shift is held, handle special events
             if is_key_pressed(KeyCode::S) {
                 SAVE_STATE_MANAGER.get_save_blocking(save_state.as_mut_ptr());
-
                 println!("saved state!");
             } else if is_key_pressed(KeyCode::A) {
                 SAVE_STATE_MANAGER.load_save_blocking(save_state.as_ptr());
                 println!("loadstate");
             }
         } else {
-            if handle.is_finished() {
-                let err = handle.join().unwrap().unwrap_err();
-                panic!("{err:?}");
-            }
+            // send regular key events
             let mut state = KEY_STATE.update_lock();
 
             for key in get_keys_pressed() {

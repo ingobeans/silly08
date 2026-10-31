@@ -22,6 +22,7 @@ impl ScreenDataManager {
     }
     pub fn get_new_frame(&self) -> Option<MutexGuard<'_, Vec<u8>>> {
         if self.new_frame_available.load(Ordering::Relaxed) {
+            self.new_frame_available.store(false, Ordering::Relaxed);
             return Some(self.inner.lock().unwrap());
         }
         None

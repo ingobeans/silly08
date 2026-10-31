@@ -11,7 +11,6 @@ mod types;
 
 // Global state:
 
-/// Active keystate
 pub static KEY_STATE: KeyState = KeyState::new();
 pub static SAVE_STATE_MANAGER: SaveStateManager = SaveStateManager::new();
 pub static SCREEN_DATA_MANAGER: ScreenDataManager = ScreenDataManager::new();
