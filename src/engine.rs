@@ -15,9 +15,14 @@ use std::sync::mpsc::Sender;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
-// from testing, hardcoded :sob:
+/// The entire size of the heap memory of the runtime.
+/// Found from testing, hardcoded :sob:
 pub const MEMORY_SIZE: usize = 268435456;
-pub const SAVED_MEMORY_SIZE: usize = 268435456 / 8;
+/// The size of a save state. Arbitrary value.
+/// From testing it seems that only about ~9% of the heap is used normally,
+/// so for performance and storage reasons we only keep a smaller portion of the full memory.
+/// (in this case 12.5%, giving a bit of headroom past the standard 9%)
+pub const SAVED_MEMORY_SIZE: usize = MEMORY_SIZE / 8;
 
 struct DefaultSerializer;
 
@@ -222,7 +227,7 @@ async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
         "let sample = `data:application/pkcs8;base64,{}`;",
         BASE64_STANDARD.encode(cart_data)
     );
-    let base = include_str!("../base.js");
+    let base = include_str!("../base.js").replacen("1", &SAVED_MEMORY_SIZE.to_string(), 1);
     let file = include_str!("../edu.js");
     let code = format!("{cart}\n{base}\n{file}");
 

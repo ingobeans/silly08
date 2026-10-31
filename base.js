@@ -1,5 +1,9 @@
 import { send_data, timeout, serialize, deserialize, send_save_state, MessagePollObject, } from "ext:core/ops";
 
+// replaced by engine.rs
+// (in practice, replaces first occurence of the number 1, so dont change the placeholder value)
+const SAVED_MEMORY_SIZE = 1;
+
 function constructProxy(name, items, log = false, onSet = undefined) {
     if (!log) {
         return items;
@@ -218,7 +222,7 @@ let bootProcessFinished = false;
 
 let terminated = false;
 
-let loadState = new Uint8Array(Math.floor(268435456 / 8));
+let loadState = new Uint8Array(SAVED_MEMORY_SIZE);
 
 globalThis.setTimeout = function (callback, time) {
     if (terminated) {
@@ -247,7 +251,7 @@ globalThis.setTimeout = function (callback, time) {
 
         }
         if (poll.shouldSaveState) {
-            let saveState = Module.HEAPU8.slice(0, Math.floor(268435456 / 8));
+            let saveState = Module.HEAPU8.slice(0, SAVED_MEMORY_SIZE);
             send_save_state(saveState);
         }
         if (poll.shouldLoadState) {
