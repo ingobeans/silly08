@@ -19,8 +19,7 @@ mod types;
 pub static KEY_STATE: KeyState = KeyState::new();
 pub static SAVE_STATE_MANAGER: SaveStateManager = SaveStateManager::new();
 pub static SHOULD_TERMINATE: AtomicBool = AtomicBool::new(false);
-pub static SCREEN_DATA_MANAGER: LazyLock<ScreenDataManager> =
-    LazyLock::new(|| ScreenDataManager::new());
+pub static SCREEN_DATA_MANAGER: LazyLock<ScreenDataManager> = LazyLock::new(ScreenDataManager::new);
 
 // Runtime:
 

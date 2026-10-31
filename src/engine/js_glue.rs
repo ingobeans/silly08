@@ -5,9 +5,9 @@ use deno_core::op2;
 use crate::engine::*;
 
 #[op2(fast)]
-fn send_save_state(#[buffer(copy)] data: Vec<u8>) {
+fn send_save_state(#[buffer] data: &[u8]) {
     assert!(data.len() >= SAVED_MEMORY_SIZE);
-    SAVE_STATE_MANAGER.write_internal_save(&data);
+    SAVE_STATE_MANAGER.write_internal_save(data);
 }
 
 #[op2(fast)]
