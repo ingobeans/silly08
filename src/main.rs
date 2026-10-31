@@ -1,9 +1,6 @@
 use macroquad::{miniquad::window::screen_size, prelude::*};
 
-use crate::engine::{
-    KEY_STATE, Message, SAVE_STATE_AVAILABLE, SAVE_STATE_DATA_PTR, SAVE_STATE_SIZE, SCREEN_DATA,
-    StatusMessage,
-};
+use crate::engine::*;
 
 mod engine;
 
@@ -23,7 +20,7 @@ async fn main() {
     } else {
         include_bytes!("../test.p8").to_vec()
     };
-    let (handle, message_rx, sender_tx) = engine::run_thread(data);
+    let (handle, message_rx, sender_tx) = run_thread(data);
 
     let image_data: [u8; 128 * 128 * 4] = std::array::from_fn(|_| 0);
     let mut image = Image {

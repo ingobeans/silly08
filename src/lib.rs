@@ -14,10 +14,7 @@ use std::{
 use deno_core::error::AnyError;
 use libretro::*;
 
-use crate::engine::{
-    KEY_STATE, LOAD_STATE_AVAILABLE, Message, SAVE_STATE_AVAILABLE, SAVE_STATE_DATA_PTR,
-    SAVE_STATE_SIZE, SCREEN_DATA, StatusMessage,
-};
+use crate::engine::*;
 
 static JOIN_HANDLE: Mutex<Option<JoinHandle<Result<(), AnyError>>>> = Mutex::new(None);
 static MESSAGE_RX: Mutex<Option<Receiver<Message>>> = Mutex::new(None);
@@ -172,7 +169,7 @@ pub unsafe extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
     let Ok(data) = std::fs::read(path) else {
         return false;
     };
-    let (handle, message_rx, terminate_tx) = engine::run_thread(data);
+    let (handle, message_rx, terminate_tx) = run_thread(data);
     *JOIN_HANDLE.lock().unwrap() = Some(handle);
     *MESSAGE_RX.lock().unwrap() = Some(message_rx);
     *TERMINATE_TX.lock().unwrap() = Some(terminate_tx);
