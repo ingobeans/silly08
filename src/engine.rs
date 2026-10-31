@@ -5,8 +5,6 @@ use deno_core::error::AnyError;
 use deno_core::extension;
 use deno_core::op2;
 use deno_core::v8;
-use deno_core::v8::ValueDeserializerHelper;
-use deno_core::v8::ValueSerializerHelper;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
@@ -24,39 +22,6 @@ pub const MEMORY_SIZE: usize = 268435456;
 /// (in this case 12.5%, giving a bit of headroom past the standard 9%)
 pub const SAVED_MEMORY_SIZE: usize = MEMORY_SIZE / 8;
 
-struct DefaultSerializer;
-
-impl v8::ValueSerializerImpl for DefaultSerializer {
-    fn throw_data_clone_error<'s>(
-        &self,
-        scope: &mut v8::PinScope<'s, '_>,
-        message: v8::Local<'s, v8::String>,
-    ) {
-        eprintln!("Error serializing::{}", message.to_rust_string_lossy(scope));
-    }
-}
-impl v8::ValueDeserializerImpl for DefaultSerializer {}
-
-#[op2]
-fn serialize(value: v8::Local<'_, v8::Value>, scope: &v8::PinScope<'_, '_>) -> Vec<u8> {
-    let context = scope.get_current_context();
-    let serializer = v8::ValueSerializer::new(scope, Box::new(DefaultSerializer));
-    serializer.write_header();
-    serializer.write_value(context, value);
-    serializer.release()
-}
-
-#[op2]
-fn deserialize<'t>(
-    #[buffer] data: &[u8],
-    scope: &v8::PinScope<'t, '_>,
-) -> Option<v8::Local<'t, v8::Value>> {
-    let context = scope.get_current_context();
-
-    let serializer = v8::ValueDeserializer::new(scope, Box::new(DefaultSerializer), data);
-    serializer.read_header(context);
-    serializer.read_value(context)
-}
 #[op2(fast)]
 fn send_save_state(#[buffer(copy)] data: Vec<u8>) {
     assert!(data.len() >= SAVED_MEMORY_SIZE);
@@ -186,7 +151,7 @@ async fn timeout(#[bigint] time: u64) {
 
 extension!(
     my_ext,
-    ops = [send_data, timeout, serialize, deserialize, send_save_state],
+    ops = [send_data, timeout, send_save_state],
     objects = [MessagePollObject],
 );
 

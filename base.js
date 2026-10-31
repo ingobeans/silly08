@@ -1,4 +1,4 @@
-import { send_data, timeout, serialize, deserialize, send_save_state, MessagePollObject, } from "ext:core/ops";
+import { send_data, timeout, send_save_state, MessagePollObject, } from "ext:core/ops";
 
 // replaced by engine.rs
 // (in practice, replaces first occurence of the number one, so dont change the placeholder value)
