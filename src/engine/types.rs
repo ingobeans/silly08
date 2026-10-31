@@ -5,13 +5,13 @@ use std::sync::{
 
 use crate::engine::*;
 
-struct SaveStateManagerInner {
+struct SaveCtx {
     dest_ptr: *mut u8,
     requested_save: bool,
 }
-unsafe impl Send for SaveStateManagerInner {}
+unsafe impl Send for SaveCtx {}
 
-impl SaveStateManagerInner {
+impl SaveCtx {
     const fn new() -> Self {
         Self {
             dest_ptr: std::ptr::null_mut(),
@@ -19,25 +19,78 @@ impl SaveStateManagerInner {
         }
     }
 }
+struct LoadCtx {
+    src_ptr: *const u8,
+    requested_load: bool,
+}
+unsafe impl Send for LoadCtx {}
+
+impl LoadCtx {
+    const fn new() -> Self {
+        Self {
+            src_ptr: std::ptr::null_mut(),
+            requested_load: false,
+        }
+    }
+}
 
 pub struct SaveStateManager {
-    inner: Mutex<SaveStateManagerInner>,
+    save_inner: Mutex<SaveCtx>,
+    load_inner: Mutex<LoadCtx>,
     save_state_available: AtomicBool,
+    load_state_complete: AtomicBool,
 }
 impl SaveStateManager {
     pub const fn new() -> Self {
         Self {
-            inner: Mutex::new(SaveStateManagerInner::new()),
+            save_inner: Mutex::new(SaveCtx::new()),
+            load_inner: Mutex::new(LoadCtx::new()),
             save_state_available: AtomicBool::new(false),
+            load_state_complete: AtomicBool::new(false),
         }
     }
-    /// Writes a save state from memory data.
+
+    /// Writes the internal state save to a destination memory buffer.
+    /// Note: Only the memory part of the internal save is written.
+    /// Intended for internal use.
+    pub fn load_internal_save(&self, dest: &mut [u8]) {
+        let lock = self.load_inner.lock().unwrap();
+
+        if lock.src_ptr.is_null() {
+            panic!("lock.src_ptr.is_null()");
+        }
+
+        unsafe {
+            // Get header
+            let mut header = [0u8; SAVE_STATE_HEADER.len()];
+            std::ptr::copy(lock.src_ptr, header.as_mut_ptr(), SAVE_STATE_HEADER.len());
+
+            if header != SAVE_STATE_HEADER {
+                eprintln!(
+                    "Unknown save state header encountered: {}\n({header:?})",
+                    String::from_utf8_lossy(&header)
+                );
+            } else {
+                // Get memory data
+                std::ptr::copy(
+                    lock.src_ptr.add(SAVE_STATE_HEADER.len()),
+                    dest.as_mut_ptr(),
+                    SAVED_MEMORY_SIZE,
+                );
+            }
+        }
+        self.load_state_complete
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    /// Updates internal state by writing a save state from memory data.
     /// Note: memory_data should not contain the header.
-    pub fn write_save(&self, memory_data: &[u8]) {
-        let lock = self.inner.lock().unwrap();
+    /// Intended for internal use.
+    pub fn write_internal_save(&self, memory_data: &[u8]) {
+        let lock = self.save_inner.lock().unwrap();
 
         if lock.dest_ptr.is_null() {
-            panic!("SAVE_STATE_DATA_PTR is null!");
+            panic!("lock.dest_ptr.is_null()");
         }
 
         unsafe {
@@ -58,8 +111,24 @@ impl SaveStateManager {
 
         self.save_state_available.store(true, Ordering::Relaxed);
     }
+
+    pub fn load_save(&self, src_ptr: *const u8) {
+        let mut lock = self.load_inner.lock().unwrap();
+        assert!(!lock.requested_load);
+
+        self.load_state_complete.store(false, Ordering::Relaxed);
+        lock.src_ptr = src_ptr;
+    }
+    pub fn load_save_blocking(&self, src_ptr: *const u8) {
+        self.load_save(src_ptr);
+        // wait for completion
+        while !self.load_state_complete.load(Ordering::Relaxed) {
+            std::hint::spin_loop();
+        }
+    }
+
     pub fn get_save(&self, dest_ptr: *mut u8) {
-        let mut lock = self.inner.lock().unwrap();
+        let mut lock = self.save_inner.lock().unwrap();
         assert!(!lock.requested_save);
 
         self.save_state_available.store(false, Ordering::Relaxed);
@@ -118,7 +187,7 @@ impl KeyState {
 pub enum StatusMessage {
     Terminate,
     SaveState,
-    LoadState(usize),
+    LoadState,
 }
 
 #[derive(Debug)]

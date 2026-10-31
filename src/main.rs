@@ -52,9 +52,8 @@ async fn main() {
 
                 println!("saved state!");
             } else if is_key_pressed(KeyCode::A) {
-                sender_tx
-                    .send(StatusMessage::LoadState(save_state.as_mut_ptr() as usize))
-                    .unwrap();
+                sender_tx.send(StatusMessage::LoadState).unwrap();
+                SAVE_STATE_MANAGER.load_save_blocking(save_state.as_ptr());
                 println!("loadstate");
             }
         } else {

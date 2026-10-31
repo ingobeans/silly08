@@ -292,13 +292,10 @@ pub extern "C" fn retro_unserialize(data: *const u8, size: usize) -> bool {
         return false;
     };
 
-    let Ok(_) = tx.send(StatusMessage::LoadState(data as usize)) else {
+    let Ok(_) = tx.send(StatusMessage::LoadState) else {
         return false;
     };
-    LOAD_STATE_AVAILABLE.store(true, std::sync::atomic::Ordering::Relaxed);
-    while LOAD_STATE_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
-        std::hint::spin_loop();
-    }
+    SAVE_STATE_MANAGER.load_save_blocking(data);
     true
 }
 

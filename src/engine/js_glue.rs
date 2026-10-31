@@ -5,7 +5,7 @@ use crate::engine::*;
 #[op2(fast)]
 fn send_save_state(#[buffer(copy)] data: Vec<u8>) {
     assert!(data.len() >= SAVED_MEMORY_SIZE);
-    SAVE_STATE_MANAGER.write_save(&data);
+    SAVE_STATE_MANAGER.write_internal_save(&data);
 }
 
 #[op2(fast)]
@@ -70,30 +70,9 @@ impl MessagePollObject {
             match message {
                 StatusMessage::Terminate => should_terminate = true,
                 StatusMessage::SaveState => should_save_state = true,
-                StatusMessage::LoadState(ptr) => {
+                StatusMessage::LoadState => {
                     should_load_state = true;
-                    let ptr = ptr as *mut u8;
-
-                    unsafe {
-                        // Get header
-                        let mut header = [0u8; SAVE_STATE_HEADER.len()];
-                        std::ptr::copy(ptr, header.as_mut_ptr(), SAVE_STATE_HEADER.len());
-
-                        if header != SAVE_STATE_HEADER {
-                            eprintln!(
-                                "Unknown save state header encountered: {}\n({header:?})",
-                                String::from_utf8_lossy(&header)
-                            );
-                        } else {
-                            // Get memory data
-                            std::ptr::copy(
-                                ptr.add(SAVE_STATE_HEADER.len()),
-                                load_state.as_mut_ptr(),
-                                SAVED_MEMORY_SIZE,
-                            );
-                        }
-                    }
-                    LOAD_STATE_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
+                    SAVE_STATE_MANAGER.load_internal_save(load_state);
                 }
             }
         }
