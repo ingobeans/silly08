@@ -99,7 +99,11 @@ impl SaveStateManager {
         unsafe {
             // Get header
             let mut header = [0u8; SAVE_STATE_HEADER.len()];
-            std::ptr::copy(lock.src_ptr, header.as_mut_ptr(), SAVE_STATE_HEADER.len());
+            std::ptr::copy_nonoverlapping(
+                lock.src_ptr,
+                header.as_mut_ptr(),
+                SAVE_STATE_HEADER.len(),
+            );
 
             if header != SAVE_STATE_HEADER {
                 eprintln!(
@@ -108,7 +112,7 @@ impl SaveStateManager {
                 );
             } else {
                 // Get memory data
-                std::ptr::copy(
+                std::ptr::copy_nonoverlapping(
                     lock.src_ptr.add(SAVE_STATE_HEADER.len()),
                     dest.as_mut_ptr(),
                     SAVED_MEMORY_SIZE,
@@ -136,14 +140,14 @@ impl SaveStateManager {
 
         unsafe {
             // Write header
-            std::ptr::copy(
+            std::ptr::copy_nonoverlapping(
                 SAVE_STATE_HEADER.as_ptr(),
                 lock.dest_ptr,
                 SAVE_STATE_HEADER.len(),
             );
 
             // Write memory data
-            std::ptr::copy(
+            std::ptr::copy_nonoverlapping(
                 memory_data.as_ptr(),
                 lock.dest_ptr.add(SAVE_STATE_HEADER.len()),
                 memory_data.len().min(SAVED_MEMORY_SIZE),
