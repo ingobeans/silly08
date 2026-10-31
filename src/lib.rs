@@ -166,12 +166,41 @@ pub unsafe extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
     let handle = run_thread(data);
     *JOIN_HANDLE.lock().unwrap() = Some(handle);
 
-    //    struct retro_audio_callback audio_cb = { audio_callback, audio_set_state };
-    //    use_audio_cb = ENVIRON_CB(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, &audio_cb);
+    true
+}
 
-    //    check_variables();
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_deinit() {
+    retro_unload_game();
+}
 
-    //    (void)info;
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_unload_game() {
+    SHOULD_TERMINATE.store(true, Ordering::Relaxed);
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_serialize_size() -> usize {
+    SAVE_STATE_SIZE
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
+    if size != SAVE_STATE_SIZE {
+        return false;
+    }
+
+    SAVE_STATE_MANAGER.get_save_blocking(data);
+    true
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn retro_unserialize(data: *const u8, size: usize) -> bool {
+    if size != SAVE_STATE_SIZE {
+        return false;
+    }
+
+    SAVE_STATE_MANAGER.load_save_blocking(data);
     true
 }
 
@@ -208,65 +237,12 @@ pub extern "C" fn retro_set_input_state(cb: InputStateFn) {
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_set_environment(cb: EnvironmentFn) {
     *ENVIRON_CB.lock().unwrap() = Some(cb);
-
-    //    if (cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &logging))
-    //       log_cb = logging.log;
-    //    else
-    //       log_cb = fallback_log;
-
-    //    static const struct retro_controller_description controllers[] = {
-    //       { "Nintendo DS", RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 0) },
-    //    };
-
-    //    static const struct retro_controller_info ports[] = {
-    //       { controllers, 1 },
-    //       { NULL, 0 },
-    //    };
-
-    //    unsafe {
-    //     cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
-    //    }
 }
 
 // function skeletons
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_init() {}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn retro_deinit() {
-    retro_unload_game();
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn retro_unload_game() {
-    SHOULD_TERMINATE.store(true, Ordering::Relaxed);
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn retro_serialize_size() -> usize {
-    SAVE_STATE_SIZE
-}
-
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
-    if size != SAVE_STATE_SIZE {
-        return false;
-    }
-
-    SAVE_STATE_MANAGER.get_save_blocking(data);
-    true
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn retro_unserialize(data: *const u8, size: usize) -> bool {
-    if size != SAVE_STATE_SIZE {
-        return false;
-    }
-
-    SAVE_STATE_MANAGER.load_save_blocking(data);
-    true
-}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_get_memory_data(_id: u32) -> *const c_void {
