@@ -1,16 +1,14 @@
 use base64::prelude::*;
-use deno_core::GarbageCollected;
-use deno_core::cppgc::GcCell;
-use deno_core::error::AnyError;
-use deno_core::extension;
-use deno_core::v8;
-use std::rc::Rc;
-use std::sync::Mutex;
-use std::sync::atomic::AtomicBool;
-use std::sync::mpsc::Receiver;
-use std::sync::mpsc::Sender;
-use std::sync::mpsc::channel;
-use std::time::Duration;
+use deno_core::{GarbageCollected, cppgc::GcCell, error::AnyError, extension, v8};
+use std::{
+    rc::Rc,
+    sync::{
+        Mutex,
+        atomic::AtomicBool,
+        mpsc::{Receiver, Sender, channel},
+    },
+    time::Duration,
+};
 
 use crate::engine::js_glue::my_ext;
 pub use crate::engine::types::*;
@@ -45,6 +43,8 @@ pub static SAVE_STATE_DATA_PTR: Mutex<usize> = Mutex::new(0);
 
 pub static MESSAGE_TX: Mutex<Option<std::sync::mpsc::Sender<Message>>> = Mutex::new(None);
 pub static TERMINATE_RX: Mutex<Option<std::sync::mpsc::Receiver<StatusMessage>>> = Mutex::new(None);
+
+// Runtime:
 
 async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
     let main_module = deno_core::url::Url::parse("node:edu.js")?;

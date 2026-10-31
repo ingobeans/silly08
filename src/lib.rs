@@ -2,13 +2,9 @@
 mod engine;
 mod libretro;
 use std::{
-    ffi::c_void,
-    ptr::null,
-    sync::{
-        Mutex,
-        mpsc::{Receiver, Sender},
-    },
-    thread::JoinHandle,
+    ffi::c_void, ptr::null, sync::{
+        Mutex, mpsc::{Receiver, Sender}
+    }, thread::JoinHandle
 };
 
 use deno_core::error::AnyError;
