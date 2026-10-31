@@ -15,6 +15,9 @@ use std::sync::mpsc::Sender;
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
+// from testing, hardcoded :sob:
+pub const MEMORY_SIZE: usize = 268435456;
+
 struct DefaultSerializer;
 
 impl v8::ValueSerializerImpl for DefaultSerializer {
@@ -50,7 +53,16 @@ fn deserialize<'t>(
 }
 #[op2(fast)]
 fn send_save_state(#[buffer(copy)] data: Vec<u8>) {
-    *SAVE_STATE_DATA.lock().unwrap() = data;
+    let ptr = SAVE_STATE_DATA_PTR.lock().unwrap();
+    if *ptr == 0 {
+        eprintln!("SAVE_STATE_DATA_PTR is null!");
+        return;
+    }
+    let ptr = *ptr as *mut u8;
+
+    unsafe {
+        std::ptr::copy(data.as_ptr(), ptr, data.len());
+    }
     SAVE_STATE_AVAILABLE.store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
@@ -118,9 +130,14 @@ impl MessagePollObject {
             match message {
                 StatusMessage::Terminate => should_terminate = true,
                 StatusMessage::SaveState => should_save_state = true,
-                StatusMessage::LoadState(data) => {
+                StatusMessage::LoadState(ptr) => {
                     should_load_state = true;
-                    load_state.copy_from_slice(&data);
+                    let ptr = ptr as *mut u8;
+
+                    unsafe {
+                        std::ptr::copy(ptr, load_state.as_mut_ptr(), load_state.len());
+                    }
+                    LOAD_STATE_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
                 }
             }
         }
@@ -170,8 +187,9 @@ pub static RELEASED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 pub static PRESSED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 pub static SCREEN_DATA: Mutex<Vec<u8>> = Mutex::new(Vec::new());
 
+pub static LOAD_STATE_AVAILABLE: AtomicBool = AtomicBool::new(false);
 pub static SAVE_STATE_AVAILABLE: AtomicBool = AtomicBool::new(false);
-pub static SAVE_STATE_DATA: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+pub static SAVE_STATE_DATA_PTR: Mutex<usize> = Mutex::new(0);
 
 pub static MESSAGE_TX: Mutex<Option<std::sync::mpsc::Sender<Message>>> = Mutex::new(None);
 pub static TERMINATE_RX: Mutex<Option<std::sync::mpsc::Receiver<StatusMessage>>> = Mutex::new(None);
@@ -181,7 +199,7 @@ pub static TERMINATE_RX: Mutex<Option<std::sync::mpsc::Receiver<StatusMessage>>>
 pub enum StatusMessage {
     Terminate,
     SaveState,
-    LoadState(Vec<u8>),
+    LoadState(usize),
 }
 
 #[derive(Debug)]

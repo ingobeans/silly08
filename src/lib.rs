@@ -15,8 +15,8 @@ use deno_core::error::AnyError;
 use libretro::*;
 
 use crate::engine::{
-    KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS, SAVE_STATE_AVAILABLE, SAVE_STATE_DATA,
-    SCREEN_DATA, StatusMessage,
+    KEYS_AVAILABLE, LOAD_STATE_AVAILABLE, MEMORY_SIZE, Message, PRESSED_KEYS, RELEASED_KEYS,
+    SAVE_STATE_AVAILABLE, SAVE_STATE_DATA_PTR, SCREEN_DATA, StatusMessage,
 };
 
 static JOIN_HANDLE: Mutex<Option<JoinHandle<Result<(), AnyError>>>> = Mutex::new(None);
@@ -262,12 +262,12 @@ pub extern "C" fn retro_unload_game() {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_serialize_size() -> usize {
-    // from testing, hardcoded :sob:
-    268435456
+    MEMORY_SIZE
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
+    assert_eq!(size, MEMORY_SIZE);
     let Ok(mut lock) = TERMINATE_TX.lock() else {
         return false;
     };
@@ -278,24 +278,17 @@ pub unsafe extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
         return false;
     };
 
+    *SAVE_STATE_DATA_PTR.lock().unwrap() = data as usize;
     while !SAVE_STATE_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
         std::hint::spin_loop();
     }
     SAVE_STATE_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
-
-    let lock = SAVE_STATE_DATA.lock().unwrap();
-    let len = lock.len().min(size);
-    unsafe {
-        std::ptr::copy(lock.as_ptr(), data, len);
-    }
-
     true
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn retro_unserialize(data: *mut u8, size: usize) -> bool {
-    assert_eq!(size, retro_serialize_size());
-    let vec = unsafe { std::slice::from_raw_parts(data, size).to_vec() };
+pub extern "C" fn retro_unserialize(data: *const u8, size: usize) -> bool {
+    assert_eq!(size, MEMORY_SIZE);
 
     let Ok(mut lock) = TERMINATE_TX.lock() else {
         return false;
@@ -303,9 +296,14 @@ pub extern "C" fn retro_unserialize(data: *mut u8, size: usize) -> bool {
     let Some(tx) = lock.as_mut() else {
         return false;
     };
-    let Ok(_) = tx.send(StatusMessage::LoadState(vec)) else {
+
+    let Ok(_) = tx.send(StatusMessage::LoadState(data as usize)) else {
         return false;
     };
+    LOAD_STATE_AVAILABLE.store(true, std::sync::atomic::Ordering::Relaxed);
+    while LOAD_STATE_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
+        std::hint::spin_loop();
+    }
     true
 }
 

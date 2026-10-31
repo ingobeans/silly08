@@ -1,8 +1,8 @@
 use macroquad::{miniquad::window::screen_size, prelude::*};
 
 use crate::engine::{
-    KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS, SAVE_STATE_AVAILABLE, SAVE_STATE_DATA,
-    SCREEN_DATA, StatusMessage,
+    KEYS_AVAILABLE, MEMORY_SIZE, Message, PRESSED_KEYS, RELEASED_KEYS, SAVE_STATE_AVAILABLE,
+    SAVE_STATE_DATA_PTR, SCREEN_DATA, StatusMessage,
 };
 
 mod engine;
@@ -34,7 +34,7 @@ async fn main() {
     let texture = Texture2D::from_image(&image);
     texture.set_filter(FilterMode::Nearest);
 
-    let mut save_state: Option<Vec<u8>> = None;
+    let mut save_state: Vec<u8> = vec![0_u8; MEMORY_SIZE];
 
     loop {
         if let Ok(message) = message_rx.try_recv() {
@@ -52,21 +52,16 @@ async fn main() {
             if is_key_pressed(KeyCode::S) {
                 sender_tx.send(StatusMessage::SaveState).unwrap();
 
+                *SAVE_STATE_DATA_PTR.lock().unwrap() = save_state.as_mut_ptr() as _;
                 while !SAVE_STATE_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
                     std::hint::spin_loop();
                 }
                 SAVE_STATE_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
 
-                let mut save_data = Vec::new();
-                let mut lock = SAVE_STATE_DATA.lock().unwrap();
-                std::mem::swap(&mut save_data, &mut lock);
-                save_state = Some(save_data);
                 println!("saved state!");
-            } else if is_key_pressed(KeyCode::A)
-                && let Some(save_state) = save_state.clone()
-            {
+            } else if is_key_pressed(KeyCode::A) {
                 sender_tx
-                    .send(StatusMessage::LoadState(save_state))
+                    .send(StatusMessage::LoadState(save_state.as_mut_ptr() as usize))
                     .unwrap();
                 println!("loadstate");
             }
