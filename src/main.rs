@@ -1,7 +1,7 @@
 use macroquad::{miniquad::window::screen_size, prelude::*};
 
 use crate::engine::{
-    KEYS_AVAILABLE, MEMORY_SIZE, Message, PRESSED_KEYS, RELEASED_KEYS, SAVE_STATE_AVAILABLE,
+    KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS, SAVE_STATE_AVAILABLE,
     SAVE_STATE_DATA_PTR, SAVED_MEMORY_SIZE, SCREEN_DATA, StatusMessage,
 };
 
