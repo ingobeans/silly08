@@ -11,7 +11,7 @@ fn send_save_state(#[buffer(copy)] data: Vec<u8>) {
 }
 
 #[op2(fast)]
-fn send_video_data(#[buffer(copy)] data: Vec<u8>) {
+fn send_video_data(#[buffer] data: &[u8]) {
     SCREEN_DATA_MANAGER.write_frame_data(data);
 }
 

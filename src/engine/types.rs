@@ -10,14 +10,15 @@ pub struct ScreenDataManager {
     new_frame_available: AtomicBool,
 }
 impl ScreenDataManager {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
-            inner: Mutex::new(Vec::new()),
+            inner: Mutex::new(vec![0; SCREEN_DATA_SIZE]),
             new_frame_available: AtomicBool::new(false),
         }
     }
-    pub fn write_frame_data(&self, data: Vec<u8>) {
-        *self.inner.lock().unwrap() = data;
+    pub fn write_frame_data(&self, data: &[u8]) {
+        let mut lock = self.inner.lock().unwrap();
+        lock.copy_from_slice(data);
         self.new_frame_available.store(true, Ordering::Relaxed);
     }
     pub fn get_new_frame(&self) -> Option<MutexGuard<'_, Vec<u8>>> {
