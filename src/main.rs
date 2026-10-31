@@ -1,9 +1,6 @@
 use macroquad::{miniquad::window::screen_size, prelude::*};
 
-use crate::engine::{
-    KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS, SAVE_STATE_AVAILABLE,
-    SAVE_STATE_DATA_PTR, SAVE_STATE_SIZE, SCREEN_DATA, StatusMessage,
-};
+use crate::engine::*;
 
 mod engine;
 
@@ -23,67 +20,46 @@ async fn main() {
     } else {
         include_bytes!("../test.p8").to_vec()
     };
-    let (handle, message_rx, sender_tx) = engine::run_thread(data);
 
-    let image_data: [u8; 128 * 128 * 4] = std::array::from_fn(|_| 0);
-    let mut image = Image {
-        bytes: image_data.to_vec(),
-        width: 128,
-        height: 128,
-    };
-    let texture = Texture2D::from_image(&image);
+    let handle = run_thread(data);
+
+    let texture = Texture2D::from_rgba8(128, 128, &[0; SCREEN_DATA_SIZE]);
     texture.set_filter(FilterMode::Nearest);
 
     let mut save_state: Vec<u8> = vec![0_u8; SAVE_STATE_SIZE];
 
     loop {
-        if let Ok(message) = message_rx.try_recv() {
-            match message {
-                Message::ScreenData => {
-                    let data = SCREEN_DATA.lock().unwrap();
-                    assert_eq!(data.len(), image.bytes.len());
-                    image.bytes = data.clone();
-                    texture.update(&image);
-                }
-            }
+        if let Some(data) = SCREEN_DATA_MANAGER.get_new_frame() {
+            assert_eq!(data.len(), SCREEN_DATA_SIZE);
+            texture.update_from_bytes(128, 128, &data);
+        }
+
+        if handle.is_finished() {
+            // Print result of thread if it fails early
+            let err = handle.join().unwrap();
+            panic!("{err:?}");
         }
 
         if is_key_down(KeyCode::RightShift) {
+            // While right shift is held, handle special events
             if is_key_pressed(KeyCode::S) {
-                sender_tx.send(StatusMessage::SaveState).unwrap();
-
-                *SAVE_STATE_DATA_PTR.lock().unwrap() = save_state.as_mut_ptr() as _;
-                while !SAVE_STATE_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
-                    std::hint::spin_loop();
-                }
-                SAVE_STATE_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
-
+                SAVE_STATE_MANAGER.get_save_blocking(save_state.as_mut_ptr());
                 println!("saved state!");
             } else if is_key_pressed(KeyCode::A) {
-                sender_tx
-                    .send(StatusMessage::LoadState(save_state.as_mut_ptr() as usize))
-                    .unwrap();
+                SAVE_STATE_MANAGER.load_save_blocking(save_state.as_ptr());
                 println!("loadstate");
             }
         } else {
-            if handle.is_finished() {
-                let err = handle.join().unwrap().unwrap_err();
-                panic!("{err:?}");
-            }
+            // Send regular key events
+            let mut state = KEY_STATE.update_lock();
 
-            let mut pressed = Vec::new();
             for key in get_keys_pressed() {
-                pressed.push(format!("{key:?}"));
+                state.pressed_keys.push(format!("{key:?}"));
             }
-            PRESSED_KEYS.lock().unwrap().append(&mut pressed);
 
-            let mut released = Vec::new();
             for key in get_keys_released() {
-                released.push(format!("{key:?}"));
+                state.released_keys.push(format!("{key:?}"));
             }
-            RELEASED_KEYS.lock().unwrap().append(&mut released);
-
-            *KEYS_AVAILABLE.lock().unwrap() = true;
         }
 
         let (mut screen_w, mut screen_h) = screen_size();
