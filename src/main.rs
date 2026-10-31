@@ -22,14 +22,14 @@ async fn main() {
     };
     let handle = run_thread(data);
 
-    let texture = Texture2D::from_rgba8(128, 128, &[0; 128 * 128 * 4]);
+    let texture = Texture2D::from_rgba8(128, 128, &[0; SCREEN_DATA_SIZE]);
     texture.set_filter(FilterMode::Nearest);
 
     let mut save_state: Vec<u8> = vec![0_u8; SAVE_STATE_SIZE];
 
     loop {
         if let Some(data) = SCREEN_DATA_MANAGER.get_new_frame() {
-            assert_eq!(data.len(), 128 * 128 * 4);
+            assert_eq!(data.len(), SCREEN_DATA_SIZE);
             texture.update_from_bytes(128, 128, &data);
         }
 

@@ -94,7 +94,7 @@ pub extern "C" fn retro_run() {
     if let Some(data) = SCREEN_DATA_MANAGER.get_new_frame() {
         let mut data = data.clone();
         unsafe {
-            assert_eq!(data.len(), 128 * 128 * 4);
+            assert_eq!(data.len(), SCREEN_DATA_SIZE);
             // data.rotate_right(1); // rgba -> xrgb
             rgba_to_xrgb8888(&mut data);
             video_cb(data.as_ptr() as _, 128, 128, 4 * 128);
