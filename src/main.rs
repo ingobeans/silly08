@@ -35,7 +35,7 @@ async fn main() {
         }
 
         if handle.is_finished() {
-            // print result of thread if it fails early
+            // Print result of thread if it fails early
             let err = handle.join().unwrap();
             panic!("{err:?}");
         }
@@ -50,7 +50,7 @@ async fn main() {
                 println!("loadstate");
             }
         } else {
-            // send regular key events
+            // Send regular key events
             let mut state = KEY_STATE.update_lock();
 
             for key in get_keys_pressed() {

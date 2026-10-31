@@ -162,7 +162,7 @@ impl SaveStateManager {
     }
     pub fn load_save_blocking(&self, src_ptr: *const u8) {
         self.load_save(src_ptr);
-        // wait for completion
+        // Wait for completion
         while !self.load_state_complete.load(Ordering::Relaxed) {
             std::hint::spin_loop();
         }
@@ -178,7 +178,7 @@ impl SaveStateManager {
     }
     pub fn get_save_blocking(&self, dest_ptr: *mut u8) {
         self.get_save(dest_ptr);
-        // wait for write
+        // Wait for write
         while !self.save_state_available.load(Ordering::Relaxed) {
             std::hint::spin_loop();
         }

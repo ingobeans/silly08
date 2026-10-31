@@ -47,8 +47,8 @@ pub unsafe extern "C" fn retro_get_system_av_info(info: *mut retro_system_av_inf
 }
 fn rgba_to_xrgb8888(buf: &mut [u8]) {
     for pixel in buf.chunks_exact_mut(4) {
-        // found through testing,
-        // dont know why the red and blue channels are swapped but whatever
+        // Found through testing,
+        // I don't know why the red and blue channels are swapped but whatever
         pixel.swap(2, 0);
     }
 }
@@ -81,10 +81,10 @@ pub extern "C" fn retro_run() {
         let key_state = unsafe { input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, *button) } == 1;
 
         if key_state && !key_map_lock[index] {
-            // key became pressed down
+            // Key became pressed down
             state.pressed_keys.push(key.to_string());
         } else if !key_state && key_map_lock[index] {
-            // key was released
+            // Key was released
             state.released_keys.push(key.to_string());
         }
 
@@ -94,11 +94,10 @@ pub extern "C" fn retro_run() {
     if let Some(mut data) = SCREEN_DATA_MANAGER.get_new_frame() {
         unsafe {
             assert_eq!(data.len(), SCREEN_DATA_SIZE);
-            // data.rotate_right(1); // rgba -> xrgb
             rgba_to_xrgb8888(&mut data);
             video_cb(data.as_ptr() as _, 128, 128, 4 * 128);
 
-            // idk if this is needed, but i want to ensure the mutex lock is held until
+            // Not sure if this is needed, but I want to ensure the mutex lock is held until
             // video_cb finishes.
             drop(data)
         }
@@ -117,7 +116,7 @@ pub static BUTTONS: &[(u32, &str, &str)] = &[
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
-    // convert BUTTONS to list with input descriptors (and an additional null entry at the end)
+    // Convert BUTTONS to list with input descriptors (and an additional null entry at the end)
     let mut input_descriptors: [_; BUTTONS.len() + 1] = std::array::from_fn(|i| {
         if i == BUTTONS.len() {
             retro_input_descriptor::null()
@@ -207,7 +206,7 @@ pub extern "C" fn retro_unserialize(data: *const u8, size: usize) -> bool {
     true
 }
 
-// callback setters
+// Callback setters:
 
 static ENVIRON_CB: Mutex<Option<EnvironmentFn>> = Mutex::new(None);
 static VIDEO_CB: Mutex<Option<VideoRefreshFn>> = Mutex::new(None);
@@ -242,7 +241,7 @@ pub extern "C" fn retro_set_environment(cb: EnvironmentFn) {
     *ENVIRON_CB.lock().unwrap() = Some(cb);
 }
 
-// function skeletons
+// Function skeletons:
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_init() {}

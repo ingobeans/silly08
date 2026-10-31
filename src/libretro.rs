@@ -1,6 +1,6 @@
 #![allow(dead_code, non_camel_case_types)]
 
-// this file contains libretro bindings that i manually ported from C from:
+// This file contains libretro bindings that i manually ported from C from:
 // https://github.com/libretro/libretro-common/blob/master/include/libretro.h
 
 use std::ffi::c_void;
@@ -8,7 +8,7 @@ use std::ffi::c_void;
 pub const RETRO_API_VERSION: u32 = 1;
 pub const RETRO_DEVICE_JOYPAD: u32 = 1;
 
-// stolen from [slot](https://github.com/BrandonKowalski/slot)
+// Stolen from [slot](https://github.com/BrandonKowalski/slot)
 pub type EnvironmentFn = unsafe extern "C" fn(u32, *mut c_void) -> bool;
 pub type VideoRefreshFn = unsafe extern "C" fn(*const c_void, u32, u32, usize);
 pub type AudioSampleFn = unsafe extern "C" fn(i16, i16);

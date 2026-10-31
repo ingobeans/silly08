@@ -1,6 +1,6 @@
 import { send_data, timeout, send_save_state, MessagePollObject, } from "ext:core/ops";
 
-// replaced by engine.rs
+// Replaced by engine.rs
 // (in practice, replaces first occurence of the number one, so dont change the placeholder value)
 const SAVED_MEMORY_SIZE = 1;
 
@@ -148,7 +148,7 @@ function toKeyboardEvent(char, type) {
     }
 
     // todo: replace hardcoded swedish keyboard layout
-    // (teporary fix)
+    // (temporary fix)
     let asInt = parseInt(char);
     if (asInt || asInt == 0) {
         if (shift) {
@@ -237,7 +237,7 @@ globalThis.setTimeout = function (callback, time) {
         }
 
         if (poll.newKeyEvents) {
-            // track map of pressed keys for debug purposes
+            // Track map of pressed keys for debug purposes
             for (let k of poll.pressedKeys) {
                 heldKeys[k] = true;
             }
