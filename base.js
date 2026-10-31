@@ -1,7 +1,7 @@
 import { send_data, timeout, serialize, deserialize, send_save_state, MessagePollObject, } from "ext:core/ops";
 
 // replaced by engine.rs
-// (in practice, replaces first occurence of the number 1, so dont change the placeholder value)
+// (in practice, replaces first occurence of the number one, so dont change the placeholder value)
 const SAVED_MEMORY_SIZE = 1;
 
 function constructProxy(name, items, log = false, onSet = undefined) {
