@@ -46,13 +46,11 @@ async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
 }
 
 pub fn run_thread(cart_data: Vec<u8>) -> JoinHandle<Result<(), AnyError>> {
-    let handle = std::thread::spawn(move || {
+    std::thread::spawn(move || {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .unwrap();
         runtime.block_on(run(&cart_data))
-    });
-
-    handle
+    })
 }
