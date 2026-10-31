@@ -17,6 +17,7 @@ use std::time::Duration;
 
 // from testing, hardcoded :sob:
 pub const MEMORY_SIZE: usize = 268435456;
+pub const SAVED_MEMORY_SIZE: usize = 268435456 / 8;
 
 struct DefaultSerializer;
 
@@ -53,15 +54,17 @@ fn deserialize<'t>(
 }
 #[op2(fast)]
 fn send_save_state(#[buffer(copy)] data: Vec<u8>) {
+    assert!(data.len() >= SAVED_MEMORY_SIZE);
     let ptr = SAVE_STATE_DATA_PTR.lock().unwrap();
     if *ptr == 0 {
         eprintln!("SAVE_STATE_DATA_PTR is null!");
         return;
     }
     let ptr = *ptr as *mut u8;
+    // std::fs::write("out.bin", &data[..SAVED_MEMORY_SIZE]).unwrap();
 
     unsafe {
-        std::ptr::copy(data.as_ptr(), ptr, data.len());
+        std::ptr::copy(data.as_ptr(), ptr, data.len().min(SAVED_MEMORY_SIZE));
     }
     SAVE_STATE_AVAILABLE.store(true, std::sync::atomic::Ordering::Relaxed);
 }
@@ -135,7 +138,7 @@ impl MessagePollObject {
                     let ptr = ptr as *mut u8;
 
                     unsafe {
-                        std::ptr::copy(ptr, load_state.as_mut_ptr(), load_state.len());
+                        std::ptr::copy(ptr, load_state.as_mut_ptr(), SAVED_MEMORY_SIZE);
                     }
                     LOAD_STATE_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
                 }

@@ -2,7 +2,7 @@ use macroquad::{miniquad::window::screen_size, prelude::*};
 
 use crate::engine::{
     KEYS_AVAILABLE, MEMORY_SIZE, Message, PRESSED_KEYS, RELEASED_KEYS, SAVE_STATE_AVAILABLE,
-    SAVE_STATE_DATA_PTR, SCREEN_DATA, StatusMessage,
+    SAVE_STATE_DATA_PTR, SAVED_MEMORY_SIZE, SCREEN_DATA, StatusMessage,
 };
 
 mod engine;
@@ -34,7 +34,7 @@ async fn main() {
     let texture = Texture2D::from_image(&image);
     texture.set_filter(FilterMode::Nearest);
 
-    let mut save_state: Vec<u8> = vec![0_u8; MEMORY_SIZE];
+    let mut save_state: Vec<u8> = vec![0_u8; SAVED_MEMORY_SIZE];
 
     loop {
         if let Ok(message) = message_rx.try_recv() {

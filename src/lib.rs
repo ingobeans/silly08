@@ -15,8 +15,8 @@ use deno_core::error::AnyError;
 use libretro::*;
 
 use crate::engine::{
-    KEYS_AVAILABLE, LOAD_STATE_AVAILABLE, MEMORY_SIZE, Message, PRESSED_KEYS, RELEASED_KEYS,
-    SAVE_STATE_AVAILABLE, SAVE_STATE_DATA_PTR, SCREEN_DATA, StatusMessage,
+    KEYS_AVAILABLE, LOAD_STATE_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS,
+    SAVE_STATE_AVAILABLE, SAVE_STATE_DATA_PTR, SAVED_MEMORY_SIZE, SCREEN_DATA, StatusMessage,
 };
 
 static JOIN_HANDLE: Mutex<Option<JoinHandle<Result<(), AnyError>>>> = Mutex::new(None);
@@ -262,12 +262,12 @@ pub extern "C" fn retro_unload_game() {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_serialize_size() -> usize {
-    MEMORY_SIZE
+    SAVED_MEMORY_SIZE
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
-    assert_eq!(size, MEMORY_SIZE);
+    assert_eq!(size, SAVED_MEMORY_SIZE);
     let Ok(mut lock) = TERMINATE_TX.lock() else {
         return false;
     };
@@ -288,7 +288,7 @@ pub unsafe extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_unserialize(data: *const u8, size: usize) -> bool {
-    assert_eq!(size, MEMORY_SIZE);
+    assert_eq!(size, SAVED_MEMORY_SIZE);
 
     let Ok(mut lock) = TERMINATE_TX.lock() else {
         return false;

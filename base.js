@@ -218,7 +218,7 @@ let bootProcessFinished = false;
 
 let terminated = false;
 
-let loadState = new Uint8Array(268435456);
+let loadState = new Uint8Array(Math.floor(268435456 / 8));
 
 globalThis.setTimeout = function (callback, time) {
     if (terminated) {
@@ -247,7 +247,7 @@ globalThis.setTimeout = function (callback, time) {
 
         }
         if (poll.shouldSaveState) {
-            let saveState = Module.HEAPU8.slice();
+            let saveState = Module.HEAPU8.slice(0, Math.floor(268435456 / 8));
             send_save_state(saveState);
         }
         if (poll.shouldLoadState) {
