@@ -2,10 +2,8 @@ use base64::prelude::*;
 use deno_core::{GarbageCollected, cppgc::GcCell, error::AnyError, extension, v8};
 use std::{
     rc::Rc,
-    sync::{
-        Mutex,
-        mpsc::{Receiver, Sender, channel},
-    },
+    sync::{Mutex, atomic::AtomicBool},
+    thread::JoinHandle,
     time::Duration,
 };
 
@@ -34,11 +32,9 @@ pub const SAVE_STATE_SIZE: usize = SAVED_MEMORY_SIZE + SAVE_STATE_HEADER.len();
 /// Active keystate
 pub static KEY_STATE: KeyState = KeyState::new();
 pub static SAVE_STATE_MANAGER: SaveStateManager = SaveStateManager::new();
+pub static SHOULD_TERMINATE: AtomicBool = AtomicBool::new(false);
 
 pub static SCREEN_DATA: Mutex<Vec<u8>> = Mutex::new(Vec::new());
-
-pub static MESSAGE_TX: Mutex<Option<std::sync::mpsc::Sender<Message>>> = Mutex::new(None);
-pub static TERMINATE_RX: Mutex<Option<std::sync::mpsc::Receiver<StatusMessage>>> = Mutex::new(None);
 
 // Runtime:
 
@@ -68,24 +64,14 @@ async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
     Ok(())
 }
 
-pub fn run_thread(
-    cart_data: Vec<u8>,
-) -> (
-    std::thread::JoinHandle<Result<(), AnyError>>,
-    Receiver<Message>,
-    Sender<StatusMessage>,
-) {
-    let (message_tx, message_rx) = channel();
-    let (terminate_tx, terminate_rx) = channel();
+pub fn run_thread(cart_data: Vec<u8>) -> JoinHandle<Result<(), AnyError>> {
     let handle = std::thread::spawn(move || {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .unwrap();
-        *MESSAGE_TX.lock().unwrap() = Some(message_tx);
-        *TERMINATE_RX.lock().unwrap() = Some(terminate_rx);
         runtime.block_on(run(&cart_data))
     });
 
-    (handle, message_rx, terminate_tx)
+    handle
 }

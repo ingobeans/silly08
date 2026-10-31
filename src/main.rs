@@ -20,39 +20,26 @@ async fn main() {
     } else {
         include_bytes!("../test.p8").to_vec()
     };
-    let (handle, message_rx, sender_tx) = run_thread(data);
+    let handle = run_thread(data);
 
-    let image_data: [u8; 128 * 128 * 4] = std::array::from_fn(|_| 0);
-    let mut image = Image {
-        bytes: image_data.to_vec(),
-        width: 128,
-        height: 128,
-    };
-    let texture = Texture2D::from_image(&image);
+    let texture = Texture2D::empty();
     texture.set_filter(FilterMode::Nearest);
 
     let mut save_state: Vec<u8> = vec![0_u8; SAVE_STATE_SIZE];
 
     loop {
-        if let Ok(message) = message_rx.try_recv() {
-            match message {
-                Message::ScreenData => {
-                    let data = SCREEN_DATA.lock().unwrap();
-                    assert_eq!(data.len(), image.bytes.len());
-                    image.bytes = data.clone();
-                    texture.update(&image);
-                }
-            }
+        let data = SCREEN_DATA.lock().unwrap();
+        if data.len() == 128 * 128 * 4 {
+            println!(",");
+            texture.update_from_bytes(128, 128, &data);
         }
 
         if is_key_down(KeyCode::RightShift) {
             if is_key_pressed(KeyCode::S) {
-                sender_tx.send(StatusMessage::SaveState).unwrap();
                 SAVE_STATE_MANAGER.get_save_blocking(save_state.as_mut_ptr());
 
                 println!("saved state!");
             } else if is_key_pressed(KeyCode::A) {
-                sender_tx.send(StatusMessage::LoadState).unwrap();
                 SAVE_STATE_MANAGER.load_save_blocking(save_state.as_ptr());
                 println!("loadstate");
             }

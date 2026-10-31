@@ -1,3 +1,5 @@
+use std::sync::atomic::Ordering;
+
 use deno_core::op2;
 
 use crate::engine::*;
@@ -10,14 +12,8 @@ fn send_save_state(#[buffer(copy)] data: Vec<u8>) {
 
 #[op2(fast)]
 fn send_data(#[buffer(copy)] data: Vec<u8>) {
+    // currently broken
     *SCREEN_DATA.lock().unwrap() = data;
-    MESSAGE_TX
-        .lock()
-        .unwrap()
-        .as_mut()
-        .unwrap()
-        .send(Message::ScreenData)
-        .unwrap();
 }
 
 #[repr(C)]
@@ -60,22 +56,9 @@ impl MessagePollObject {
     #[static_method]
     #[cppgc]
     fn poll(#[buffer] load_state: &mut [u8]) -> MessagePollObject {
-        let mut should_terminate = false;
-        let mut should_save_state = false;
-        let mut should_load_state = false;
-
-        // let mut load_state = Vec::new();
-
-        if let Ok(message) = TERMINATE_RX.lock().unwrap().as_mut().unwrap().try_recv() {
-            match message {
-                StatusMessage::Terminate => should_terminate = true,
-                StatusMessage::SaveState => should_save_state = true,
-                StatusMessage::LoadState => {
-                    should_load_state = true;
-                    SAVE_STATE_MANAGER.load_internal_save(load_state);
-                }
-            }
-        }
+        let should_terminate = SHOULD_TERMINATE.load(Ordering::Relaxed);
+        let should_save_state = SAVE_STATE_MANAGER.is_save_requested();
+        let should_load_state = SAVE_STATE_MANAGER.load_internal_save_if_requested(load_state);
 
         let events = KEY_STATE.flush_events();
 

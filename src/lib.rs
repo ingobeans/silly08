@@ -4,10 +4,7 @@ mod libretro;
 use std::{
     ffi::c_void,
     ptr::null,
-    sync::{
-        Mutex,
-        mpsc::{Receiver, Sender},
-    },
+    sync::{Mutex, atomic::Ordering},
     thread::JoinHandle,
 };
 
@@ -17,8 +14,6 @@ use libretro::*;
 use crate::engine::*;
 
 static JOIN_HANDLE: Mutex<Option<JoinHandle<Result<(), AnyError>>>> = Mutex::new(None);
-static MESSAGE_RX: Mutex<Option<Receiver<Message>>> = Mutex::new(None);
-static TERMINATE_TX: Mutex<Option<Sender<StatusMessage>>> = Mutex::new(None);
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_api_version() -> u32 {
@@ -169,10 +164,8 @@ pub unsafe extern "C" fn retro_load_game(info: *const retro_game_info) -> bool {
     let Ok(data) = std::fs::read(path) else {
         return false;
     };
-    let (handle, message_rx, terminate_tx) = run_thread(data);
+    let handle = run_thread(data);
     *JOIN_HANDLE.lock().unwrap() = Some(handle);
-    *MESSAGE_RX.lock().unwrap() = Some(message_rx);
-    *TERMINATE_TX.lock().unwrap() = Some(terminate_tx);
 
     //    struct retro_audio_callback audio_cb = { audio_callback, audio_set_state };
     //    use_audio_cb = ENVIRON_CB(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, &audio_cb);
@@ -248,11 +241,7 @@ pub extern "C" fn retro_deinit() {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_unload_game() {
-    let Ok(mut lock) = TERMINATE_TX.lock() else {
-        return;
-    };
-    let Some(tx) = lock.as_mut() else { return };
-    let _ = tx.send(StatusMessage::Terminate);
+    SHOULD_TERMINATE.store(true, Ordering::Relaxed);
 }
 
 #[unsafe(no_mangle)]
@@ -266,15 +255,6 @@ pub unsafe extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
         return false;
     }
 
-    let Ok(mut lock) = TERMINATE_TX.lock() else {
-        return false;
-    };
-    let Some(tx) = lock.as_mut() else {
-        return false;
-    };
-    let Ok(_) = tx.send(StatusMessage::SaveState) else {
-        return false;
-    };
     SAVE_STATE_MANAGER.get_save_blocking(data);
     true
 }
@@ -285,16 +265,6 @@ pub extern "C" fn retro_unserialize(data: *const u8, size: usize) -> bool {
         return false;
     }
 
-    let Ok(mut lock) = TERMINATE_TX.lock() else {
-        return false;
-    };
-    let Some(tx) = lock.as_mut() else {
-        return false;
-    };
-
-    let Ok(_) = tx.send(StatusMessage::LoadState) else {
-        return false;
-    };
     SAVE_STATE_MANAGER.load_save_blocking(data);
     true
 }

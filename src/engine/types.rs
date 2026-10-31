@@ -50,11 +50,21 @@ impl SaveStateManager {
         }
     }
 
+    pub fn is_save_requested(&self) -> bool {
+        self.save_inner.lock().unwrap().requested_save
+    }
+
     /// Writes the internal state save to a destination memory buffer.
     /// Note: Only the memory part of the internal save is written.
     /// Intended for internal use.
-    pub fn load_internal_save(&self, dest: &mut [u8]) {
+    ///
+    /// Returns whether load was requested & successful
+    pub fn load_internal_save_if_requested(&self, dest: &mut [u8]) -> bool {
         let lock = self.load_inner.lock().unwrap();
+
+        if !lock.requested_load {
+            return false;
+        }
 
         if lock.src_ptr.is_null() {
             panic!("lock.src_ptr.is_null()");
@@ -79,8 +89,10 @@ impl SaveStateManager {
                 );
             }
         }
-        self.load_state_complete
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+
+        self.load_state_complete.store(true, Ordering::Relaxed);
+
+        true
     }
 
     /// Updates internal state by writing a save state from memory data.
@@ -180,17 +192,4 @@ impl KeyState {
         }
         flushed
     }
-}
-
-#[allow(dead_code)]
-#[derive(Debug)]
-pub enum StatusMessage {
-    Terminate,
-    SaveState,
-    LoadState,
-}
-
-#[derive(Debug)]
-pub enum Message {
-    ScreenData,
 }
