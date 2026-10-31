@@ -2,9 +2,13 @@
 mod engine;
 mod libretro;
 use std::{
-    ffi::c_void, ptr::null, sync::{
-        Mutex, mpsc::{Receiver, Sender}
-    }, thread::JoinHandle
+    ffi::c_void,
+    ptr::null,
+    sync::{
+        Mutex,
+        mpsc::{Receiver, Sender},
+    },
+    thread::JoinHandle,
 };
 
 use deno_core::error::AnyError;
@@ -271,12 +275,7 @@ pub unsafe extern "C" fn retro_serialize(data: *mut u8, size: usize) -> bool {
     let Ok(_) = tx.send(StatusMessage::SaveState) else {
         return false;
     };
-
-    *SAVE_STATE_DATA_PTR.lock().unwrap() = data as usize;
-    while !SAVE_STATE_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
-        std::hint::spin_loop();
-    }
-    SAVE_STATE_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
+    SAVE_STATE_MANAGER.get_save_blocking(data);
     true
 }
 

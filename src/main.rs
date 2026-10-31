@@ -48,12 +48,7 @@ async fn main() {
         if is_key_down(KeyCode::RightShift) {
             if is_key_pressed(KeyCode::S) {
                 sender_tx.send(StatusMessage::SaveState).unwrap();
-
-                *SAVE_STATE_DATA_PTR.lock().unwrap() = save_state.as_mut_ptr() as _;
-                while !SAVE_STATE_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
-                    std::hint::spin_loop();
-                }
-                SAVE_STATE_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
+                SAVE_STATE_MANAGER.get_save_blocking(save_state.as_mut_ptr());
 
                 println!("saved state!");
             } else if is_key_pressed(KeyCode::A) {

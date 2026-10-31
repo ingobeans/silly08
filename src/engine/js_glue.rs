@@ -5,28 +5,7 @@ use crate::engine::*;
 #[op2(fast)]
 fn send_save_state(#[buffer(copy)] data: Vec<u8>) {
     assert!(data.len() >= SAVED_MEMORY_SIZE);
-    let ptr = SAVE_STATE_DATA_PTR.lock().unwrap();
-    if *ptr == 0 {
-        eprintln!("SAVE_STATE_DATA_PTR is null!");
-        return;
-    }
-    let ptr = *ptr as *mut u8;
-    // std::fs::write("out.bin", &data[..SAVED_MEMORY_SIZE]).unwrap();
-
-    // todo: assert length of pointer buffer is SAVE_STATE_SIZE
-
-    unsafe {
-        // Write header
-        std::ptr::copy(SAVE_STATE_HEADER.as_ptr(), ptr, SAVE_STATE_HEADER.len());
-
-        // Write memory data
-        std::ptr::copy(
-            data.as_ptr(),
-            ptr.add(SAVE_STATE_HEADER.len()),
-            data.len().min(SAVED_MEMORY_SIZE),
-        );
-    }
-    SAVE_STATE_AVAILABLE.store(true, std::sync::atomic::Ordering::Relaxed);
+    SAVE_STATE_MANAGER.write_save(&data);
 }
 
 #[op2(fast)]

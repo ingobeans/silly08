@@ -34,12 +34,11 @@ pub const SAVE_STATE_SIZE: usize = SAVED_MEMORY_SIZE + SAVE_STATE_HEADER.len();
 
 /// Active keystate
 pub static KEY_STATE: KeyState = KeyState::new();
+pub static SAVE_STATE_MANAGER: SaveStateManager = SaveStateManager::new();
 
 pub static SCREEN_DATA: Mutex<Vec<u8>> = Mutex::new(Vec::new());
 
 pub static LOAD_STATE_AVAILABLE: AtomicBool = AtomicBool::new(false);
-pub static SAVE_STATE_AVAILABLE: AtomicBool = AtomicBool::new(false);
-pub static SAVE_STATE_DATA_PTR: Mutex<usize> = Mutex::new(0);
 
 pub static MESSAGE_TX: Mutex<Option<std::sync::mpsc::Sender<Message>>> = Mutex::new(None);
 pub static TERMINATE_RX: Mutex<Option<std::sync::mpsc::Receiver<StatusMessage>>> = Mutex::new(None);
