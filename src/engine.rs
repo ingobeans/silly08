@@ -6,7 +6,6 @@ use deno_core::extension;
 use deno_core::v8;
 use std::rc::Rc;
 use std::sync::Mutex;
-use std::sync::MutexGuard;
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
@@ -14,8 +13,10 @@ use std::sync::mpsc::channel;
 use std::time::Duration;
 
 use crate::engine::js_glue::my_ext;
+pub use crate::engine::types::*;
 
 mod js_glue;
+mod types;
 
 // Constants:
 
@@ -44,58 +45,6 @@ pub static SAVE_STATE_DATA_PTR: Mutex<usize> = Mutex::new(0);
 
 pub static MESSAGE_TX: Mutex<Option<std::sync::mpsc::Sender<Message>>> = Mutex::new(None);
 pub static TERMINATE_RX: Mutex<Option<std::sync::mpsc::Receiver<StatusMessage>>> = Mutex::new(None);
-
-pub struct KeyStateInner {
-    pub pressed_keys: Vec<String>,
-    pub released_keys: Vec<String>,
-    pub new_key_events: bool,
-}
-impl KeyStateInner {
-    const fn new() -> Self {
-        Self {
-            pressed_keys: Vec::new(),
-            released_keys: Vec::new(),
-            new_key_events: false,
-        }
-    }
-}
-pub struct KeyState {
-    inner: Mutex<KeyStateInner>,
-}
-impl KeyState {
-    const fn new() -> Self {
-        Self {
-            inner: Mutex::new(KeyStateInner::new()),
-        }
-    }
-    pub fn update_lock(&self) -> MutexGuard<'_, KeyStateInner> {
-        let mut lock = self.inner.lock().unwrap();
-        lock.new_key_events = true;
-        lock
-    }
-    pub fn flush_events(&self) -> KeyStateInner {
-        let mut lock = self.inner.lock().unwrap();
-        let mut flushed = KeyStateInner::new();
-        if lock.new_key_events {
-            std::mem::swap(&mut flushed, &mut lock);
-            lock.new_key_events = false;
-        }
-        flushed
-    }
-}
-
-#[allow(dead_code)]
-#[derive(Debug)]
-pub enum StatusMessage {
-    Terminate,
-    SaveState,
-    LoadState(usize),
-}
-
-#[derive(Debug)]
-pub enum Message {
-    ScreenData,
-}
 
 async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
     let main_module = deno_core::url::Url::parse("node:edu.js")?;
