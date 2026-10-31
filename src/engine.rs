@@ -7,6 +7,7 @@ use deno_core::op2;
 use deno_core::v8;
 use std::rc::Rc;
 use std::sync::Mutex;
+use std::sync::MutexGuard;
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
@@ -27,6 +28,47 @@ pub const SAVE_STATE_HEADER: &[u8] = b"silly08-00";
 
 /// The total size of a save state, containing both the saved memory and the header.
 pub const SAVE_STATE_SIZE: usize = SAVED_MEMORY_SIZE + SAVE_STATE_HEADER.len();
+
+pub static KEY_STATE: KeyState = KeyState::new();
+
+pub struct KeyStateInner {
+    pub pressed_keys: Vec<String>,
+    pub released_keys: Vec<String>,
+    pub new_key_events: bool,
+}
+impl KeyStateInner {
+    const fn new() -> Self {
+        Self {
+            pressed_keys: Vec::new(),
+            released_keys: Vec::new(),
+            new_key_events: false,
+        }
+    }
+}
+pub struct KeyState {
+    inner: Mutex<KeyStateInner>,
+}
+impl KeyState {
+    const fn new() -> Self {
+        Self {
+            inner: Mutex::new(KeyStateInner::new()),
+        }
+    }
+    pub fn update_lock(&self) -> MutexGuard<'_, KeyStateInner> {
+        let mut lock = self.inner.lock().unwrap();
+        lock.new_key_events = true;
+        return lock;
+    }
+    pub fn flush_events(&self) -> KeyStateInner {
+        let mut lock = self.inner.lock().unwrap();
+        let mut flushed = KeyStateInner::new();
+        if lock.new_key_events {
+            std::mem::swap(&mut flushed, &mut lock);
+            lock.new_key_events = false;
+        }
+        flushed
+    }
+}
 
 #[op2(fast)]
 fn send_save_state(#[buffer(copy)] data: Vec<u8>) {
@@ -69,7 +111,7 @@ fn send_data(#[buffer(copy)] data: Vec<u8>) {
 
 #[repr(C)]
 pub struct MessagePollObject {
-    keys_available: GcCell<bool>,
+    new_key_events: GcCell<bool>,
     should_terminate: GcCell<bool>,
     should_save_state: GcCell<bool>,
     should_load_state: GcCell<bool>,
@@ -80,10 +122,8 @@ pub struct MessagePollObject {
 #[op2]
 impl MessagePollObject {
     #[getter]
-    fn keys_available(&self, isolate: &mut v8::Isolate) -> bool {
-        let a = *self.keys_available.get(isolate);
-        self.keys_available.set(isolate, false);
-        a
+    fn new_key_events(&self, isolate: &mut v8::Isolate) -> bool {
+        *self.new_key_events.get(isolate)
     }
     #[getter]
     fn should_terminate(&self, isolate: &v8::Isolate) -> bool {
@@ -147,23 +187,14 @@ impl MessagePollObject {
             }
         }
 
-        let mut lock = KEYS_AVAILABLE.lock().unwrap();
+        let events = KEY_STATE.flush_events();
 
-        let keys_available = *lock;
-        let mut pressed_keys = Vec::new();
-        let mut released_keys = Vec::new();
-
-        if *lock {
-            *lock = false;
-            pressed_keys = PRESSED_KEYS.lock().unwrap().drain(..).collect();
-            released_keys = RELEASED_KEYS.lock().unwrap().drain(..).collect();
-        }
         MessagePollObject {
             should_terminate: GcCell::new(should_terminate),
             should_save_state: GcCell::new(should_save_state),
-            keys_available: GcCell::new(keys_available),
-            pressed_keys: GcCell::new(pressed_keys),
-            released_keys: GcCell::new(released_keys),
+            new_key_events: GcCell::new(events.new_key_events),
+            pressed_keys: GcCell::new(events.pressed_keys),
+            released_keys: GcCell::new(events.released_keys),
             should_load_state: GcCell::new(should_load_state),
         }
     }
@@ -187,9 +218,6 @@ extension!(
     objects = [MessagePollObject],
 );
 
-pub static KEYS_AVAILABLE: Mutex<bool> = Mutex::new(false);
-pub static RELEASED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
-pub static PRESSED_KEYS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 pub static SCREEN_DATA: Mutex<Vec<u8>> = Mutex::new(Vec::new());
 
 pub static LOAD_STATE_AVAILABLE: AtomicBool = AtomicBool::new(false);

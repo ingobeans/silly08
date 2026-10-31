@@ -1,8 +1,8 @@
 use macroquad::{miniquad::window::screen_size, prelude::*};
 
 use crate::engine::{
-    KEYS_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS, SAVE_STATE_AVAILABLE,
-    SAVE_STATE_DATA_PTR, SAVE_STATE_SIZE, SCREEN_DATA, StatusMessage,
+    KEY_STATE, Message, SAVE_STATE_AVAILABLE, SAVE_STATE_DATA_PTR, SAVE_STATE_SIZE, SCREEN_DATA,
+    StatusMessage,
 };
 
 mod engine;
@@ -70,20 +70,15 @@ async fn main() {
                 let err = handle.join().unwrap().unwrap_err();
                 panic!("{err:?}");
             }
+            let mut state = KEY_STATE.update_lock();
 
-            let mut pressed = Vec::new();
             for key in get_keys_pressed() {
-                pressed.push(format!("{key:?}"));
+                state.pressed_keys.push(format!("{key:?}"));
             }
-            PRESSED_KEYS.lock().unwrap().append(&mut pressed);
 
-            let mut released = Vec::new();
             for key in get_keys_released() {
-                released.push(format!("{key:?}"));
+                state.released_keys.push(format!("{key:?}"));
             }
-            RELEASED_KEYS.lock().unwrap().append(&mut released);
-
-            *KEYS_AVAILABLE.lock().unwrap() = true;
         }
 
         let (mut screen_w, mut screen_h) = screen_size();

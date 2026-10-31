@@ -15,8 +15,8 @@ use deno_core::error::AnyError;
 use libretro::*;
 
 use crate::engine::{
-    KEYS_AVAILABLE, LOAD_STATE_AVAILABLE, Message, PRESSED_KEYS, RELEASED_KEYS,
-    SAVE_STATE_AVAILABLE, SAVE_STATE_DATA_PTR, SAVE_STATE_SIZE, SCREEN_DATA, StatusMessage,
+    KEY_STATE, LOAD_STATE_AVAILABLE, Message, SAVE_STATE_AVAILABLE, SAVE_STATE_DATA_PTR,
+    SAVE_STATE_SIZE, SCREEN_DATA, StatusMessage,
 };
 
 static JOIN_HANDLE: Mutex<Option<JoinHandle<Result<(), AnyError>>>> = Mutex::new(None);
@@ -83,23 +83,21 @@ pub extern "C" fn retro_run() {
     }
 
     let mut key_map_lock = KEY_MAP.lock().unwrap();
-    let mut pressed_keys_lock = PRESSED_KEYS.lock().unwrap();
-    let mut released_keys_lock = RELEASED_KEYS.lock().unwrap();
 
+    let mut state = KEY_STATE.update_lock();
     for (index, (button, _, key)) in BUTTONS.iter().enumerate() {
-        let state = unsafe { input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, *button) } == 1;
+        let key_state = unsafe { input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, *button) } == 1;
 
-        if state && !key_map_lock[index] {
+        if key_state && !key_map_lock[index] {
             // key became pressed down
-            pressed_keys_lock.push(key.to_string());
-        } else if !state && key_map_lock[index] {
+            state.pressed_keys.push(key.to_string());
+        } else if !key_state && key_map_lock[index] {
             // key was released
-            released_keys_lock.push(key.to_string());
+            state.released_keys.push(key.to_string());
         }
 
-        key_map_lock[index] = state;
+        key_map_lock[index] = key_state;
     }
-    *KEYS_AVAILABLE.lock().unwrap() = true;
 
     let mut data = SCREEN_DATA.lock().unwrap().clone();
     if data.is_empty() {

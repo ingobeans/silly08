@@ -236,7 +236,7 @@ globalThis.setTimeout = function (callback, time) {
             return;
         }
 
-        if (poll.keysAvailable) {
+        if (poll.newKeyEvents) {
             // track map of pressed keys for debug purposes
             for (let k of poll.pressedKeys) {
                 heldKeys[k] = true;
