@@ -1,4 +1,4 @@
-import { send_data, timeout, send_save_state, MessagePollObject, } from "ext:core/ops";
+import { send_video_data, timeout, send_save_state, MessagePollObject, } from "ext:core/ops";
 
 // Replaced by engine.rs
 // (in practice, replaces first occurence of the number one, so dont change the placeholder value)
@@ -36,9 +36,9 @@ var context = constructProxy("context", {
     createImageData: (w, h) => {
         return ImageData;
     },
-    putImageData: (imageData, dx, dy, dirtyX, dirtyY, dirtyWidth, dirtyHeight) => {
+    putImageData: (imageData) => {
         let a = new Uint8Array(imageData.data.buffer, imageData.data.byteOffset, imageData.data.length);
-        send_data(a);
+        send_video_data(a);
     }
 });
 

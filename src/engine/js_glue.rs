@@ -11,7 +11,7 @@ fn send_save_state(#[buffer(copy)] data: Vec<u8>) {
 }
 
 #[op2(fast)]
-fn send_data(#[buffer(copy)] data: Vec<u8>) {
+fn send_video_data(#[buffer(copy)] data: Vec<u8>) {
     SCREEN_DATA_MANAGER.write_frame_data(data);
 }
 
@@ -86,6 +86,6 @@ async fn timeout(#[bigint] time: u64) {
 
 extension!(
     my_ext,
-    ops = [send_data, timeout, send_save_state],
+    ops = [send_video_data, timeout, send_save_state],
     objects = [MessagePollObject],
 );
