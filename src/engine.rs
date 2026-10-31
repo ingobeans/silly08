@@ -7,7 +7,7 @@ use std::{
     time::Duration,
 };
 
-use crate::engine::js_glue::my_ext;
+use crate::engine::js_glue::glue_ext;
 pub use crate::engine::{consts::*, types::*};
 
 mod consts;
@@ -27,7 +27,7 @@ async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
     let main_module = deno_core::url::Url::parse("node:edu.js")?;
     let mut js_runtime = deno_core::JsRuntime::new(deno_core::RuntimeOptions {
         module_loader: Some(Rc::new(deno_core::FsModuleLoader)),
-        extensions: vec![my_ext::init()],
+        extensions: vec![glue_ext::init()],
         ..Default::default()
     });
 

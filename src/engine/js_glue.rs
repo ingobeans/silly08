@@ -85,7 +85,7 @@ async fn timeout(#[bigint] time: u64) {
 }
 
 extension!(
-    my_ext,
+    glue_ext,
     ops = [send_video_data, timeout, send_save_state],
     objects = [MessagePollObject],
 );
