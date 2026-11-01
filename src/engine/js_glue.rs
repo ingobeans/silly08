@@ -11,8 +11,9 @@ fn send_save_state(#[buffer] data: &[u8]) {
 }
 
 #[op2(fast)]
-fn send_video_data(#[buffer] data: &[u8]) {
-    SCREEN_DATA_MANAGER.write_frame_data(data);
+fn send_video_data(#[buffer] data: &mut [u8]) {
+    assert_eq!(data.len(), SCREEN_DATA_SIZE);
+    SCREEN_DATA_MANAGER.update_frame(data.as_ptr());
 }
 
 #[repr(C)]

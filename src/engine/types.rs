@@ -1,31 +1,42 @@
 use std::sync::{
-    Mutex, MutexGuard,
+    Mutex, MutexGuard, RwLock,
     atomic::{AtomicBool, Ordering},
 };
 
 use crate::engine::*;
 
+struct ScreenDataManagerInner {
+    pub ptr: *const u8,
+}
+unsafe impl Send for ScreenDataManagerInner {}
+unsafe impl Sync for ScreenDataManagerInner {}
+
 pub struct ScreenDataManager {
-    inner: Mutex<Vec<u8>>,
-    new_frame_available: AtomicBool,
+    inner: RwLock<ScreenDataManagerInner>,
+    frame_available: AtomicBool,
+    ptr_initialized: AtomicBool,
 }
 impl ScreenDataManager {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
-            inner: Mutex::new(vec![0; SCREEN_DATA_SIZE]),
-            new_frame_available: AtomicBool::new(false),
+            inner: RwLock::new(ScreenDataManagerInner {
+                ptr: std::ptr::null(),
+            }),
+            frame_available: AtomicBool::new(false),
+            ptr_initialized: AtomicBool::new(false),
         }
     }
-    pub fn write_frame_data(&self, data: &[u8]) {
-        let mut lock = self.inner.lock().unwrap();
-        lock.copy_from_slice(data);
-        self.new_frame_available.store(true, Ordering::Relaxed);
-    }
-    pub fn get_new_frame(&self) -> Option<MutexGuard<'_, Vec<u8>>> {
-        if self.new_frame_available.swap(false, Ordering::Relaxed) {
-            return Some(self.inner.lock().unwrap());
+    pub fn get_new_frame(&self) -> Option<*const u8> {
+        if self.frame_available.load(Ordering::Relaxed) {
+            return Some(self.inner.read().unwrap().ptr);
         }
         None
+    }
+    pub fn update_frame(&self, ptr: *const u8) {
+        if !self.ptr_initialized.swap(true, Ordering::Relaxed) {
+            self.inner.write().unwrap().ptr = ptr;
+        }
+        self.frame_available.store(true, Ordering::Relaxed);
     }
 }
 

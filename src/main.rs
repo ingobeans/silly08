@@ -29,9 +29,14 @@ async fn main() {
     let mut save_state: Vec<u8> = vec![0_u8; SAVE_STATE_SIZE];
 
     loop {
-        if let Some(data) = SCREEN_DATA_MANAGER.get_new_frame() {
-            assert_eq!(data.len(), SCREEN_DATA_SIZE);
-            texture.update_from_bytes(128, 128, &data);
+        if let Some(ptr) = SCREEN_DATA_MANAGER.get_new_frame() {
+            unsafe {
+                texture.update_from_bytes(
+                    128,
+                    128,
+                    std::slice::from_raw_parts(ptr, SCREEN_DATA_SIZE),
+                );
+            }
         }
 
         if handle.is_finished() {

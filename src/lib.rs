@@ -91,15 +91,13 @@ pub extern "C" fn retro_run() {
         key_map_lock[index] = key_state;
     }
 
-    if let Some(mut data) = SCREEN_DATA_MANAGER.get_new_frame() {
+    if let Some(data) = SCREEN_DATA_MANAGER.get_new_frame() {
         unsafe {
-            assert_eq!(data.len(), SCREEN_DATA_SIZE);
-            rgba_to_xrgb8888(&mut data);
-            video_cb(data.as_ptr() as _, 128, 128, 4 * 128);
-
-            // Not sure if this is needed, but I want to ensure the mutex lock is held until
-            // video_cb finishes.
-            drop(data)
+            rgba_to_xrgb8888(std::slice::from_raw_parts_mut(
+                data as *mut u8,
+                SCREEN_DATA_SIZE,
+            ));
+            video_cb(data as _, 128, 128, 4 * 128);
         }
     }
 }
