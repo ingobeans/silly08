@@ -21,7 +21,6 @@ pub struct MessagePollObject {
     new_key_events: GcCell<bool>,
     should_terminate: GcCell<bool>,
     should_save_state: GcCell<bool>,
-    should_load_state: GcCell<bool>,
     pressed_keys: GcCell<Vec<String>>,
     released_keys: GcCell<Vec<String>>,
 }
@@ -41,10 +40,6 @@ impl MessagePollObject {
         *self.should_save_state.get(isolate)
     }
     #[getter]
-    fn should_load_state(&self, isolate: &v8::Isolate) -> bool {
-        *self.should_load_state.get(isolate)
-    }
-    #[getter]
     fn pressed_keys(&self, isolate: &v8::Isolate) -> Vec<String> {
         self.pressed_keys.get(isolate).clone()
     }
@@ -55,10 +50,10 @@ impl MessagePollObject {
 
     #[static_method]
     #[cppgc]
-    fn poll(#[buffer] load_state: &mut [u8]) -> MessagePollObject {
+    fn poll(#[buffer] internal_memory: &mut [u8]) -> MessagePollObject {
         let should_terminate = SHOULD_TERMINATE.load(Ordering::Relaxed);
         let should_save_state = SAVE_STATE_MANAGER.is_save_requested();
-        let should_load_state = SAVE_STATE_MANAGER.load_internal_save_if_requested(load_state);
+        SAVE_STATE_MANAGER.load_internal_save_if_requested(internal_memory);
 
         let events = KEY_STATE.flush_events();
 
@@ -68,7 +63,6 @@ impl MessagePollObject {
             new_key_events: GcCell::new(events.new_key_events),
             pressed_keys: GcCell::new(events.pressed_keys),
             released_keys: GcCell::new(events.released_keys),
-            should_load_state: GcCell::new(should_load_state),
         }
     }
 }

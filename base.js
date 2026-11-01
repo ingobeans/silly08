@@ -221,14 +221,12 @@ let bootProcessFinished = false;
 
 let terminated = false;
 
-let loadState = new Uint8Array(SAVED_MEMORY_SIZE);
-
 globalThis.setTimeout = function (callback, time) {
     if (terminated) {
         return;
     }
     timeout(time).then(() => {
-        let poll = MessagePollObject.poll(loadState);
+        let poll = MessagePollObject.poll(Module.HEAPU8);
 
         terminated = terminated || poll.shouldTerminate;
         if (terminated) {
@@ -252,9 +250,6 @@ globalThis.setTimeout = function (callback, time) {
         if (poll.shouldSaveState) {
             let saveState = Module.HEAPU8.slice(0, SAVED_MEMORY_SIZE);
             send_save_state(saveState);
-        }
-        if (poll.shouldLoadState) {
-            Module.HEAPU8.set(loadState);
         }
 
         callback();

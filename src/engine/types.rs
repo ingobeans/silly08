@@ -100,13 +100,11 @@ impl SaveStateManager {
     /// Writes the internal state save to a destination memory buffer.
     /// Note: Only the memory part of the internal save is written.
     /// Intended for internal use.
-    ///
-    /// Returns whether load was requested & successful
-    pub fn load_internal_save_if_requested(&self, dest: &mut [u8]) -> bool {
+    pub fn load_internal_save_if_requested(&self, dest: &mut [u8]) {
         let mut lock = self.load_inner.lock().unwrap();
 
         if !lock.requested_load {
-            return false;
+            return;
         }
         lock.requested_load = false;
 
@@ -139,8 +137,6 @@ impl SaveStateManager {
         }
 
         self.load_state_complete.store(true, Ordering::Relaxed);
-
-        true
     }
 
     /// Updates internal state by writing a save state from memory data.
