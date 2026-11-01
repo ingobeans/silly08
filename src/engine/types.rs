@@ -26,6 +26,11 @@ impl ScreenDataManager {
             ptr_initialized: AtomicBool::new(false),
         }
     }
+    #[allow(dead_code)]
+    pub fn reset(&self) {
+        self.frame_available.store(false, Ordering::Relaxed);
+        self.ptr_initialized.store(false, Ordering::Relaxed);
+    }
     pub fn get_new_frame(&self) -> Option<*const u8> {
         if self.frame_available.swap(false, Ordering::Relaxed) {
             return Some(self.inner.read().unwrap().ptr);
@@ -33,6 +38,9 @@ impl ScreenDataManager {
         None
     }
     pub fn update_frame(&self, ptr: *const u8) {
+        if SHOULD_TERMINATE.load(Ordering::Relaxed) {
+            return;
+        }
         if !self.ptr_initialized.swap(true, Ordering::Relaxed) {
             self.inner.write().unwrap().ptr = ptr;
         }

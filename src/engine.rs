@@ -19,6 +19,7 @@ pub static SCREEN_DATA_MANAGER: ScreenDataManager = ScreenDataManager::new();
 // Runtime:
 
 async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
+    SHOULD_TERMINATE.store(false, std::sync::atomic::Ordering::Relaxed);
     let main_module = deno_core::url::Url::parse("node:edu.js")?;
     let mut js_runtime = deno_core::JsRuntime::new(deno_core::RuntimeOptions {
         module_loader: Some(Rc::new(deno_core::FsModuleLoader)),

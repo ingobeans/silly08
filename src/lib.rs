@@ -177,6 +177,10 @@ pub extern "C" fn retro_deinit() {
 #[unsafe(no_mangle)]
 pub extern "C" fn retro_unload_game() {
     SHOULD_TERMINATE.store(true, Ordering::Relaxed);
+    SCREEN_DATA_MANAGER.reset();
+    if let Some(cb) = VIDEO_CB.lock().unwrap().as_ref() {
+        unsafe { cb(null(), 0, 0, 0) };
+    }
 }
 
 #[unsafe(no_mangle)]
