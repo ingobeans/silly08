@@ -37,8 +37,7 @@ var context = constructProxy("context", {
         return ImageData;
     },
     putImageData: (imageData) => {
-        let a = new Uint8Array(imageData.data.buffer, imageData.data.byteOffset, imageData.data.length);
-        send_video_data(a);
+        send_video_data(imageData.data);
     }
 });
 
