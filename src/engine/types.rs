@@ -27,7 +27,7 @@ impl ScreenDataManager {
         }
     }
     pub fn get_new_frame(&self) -> Option<*const u8> {
-        if self.frame_available.load(Ordering::Relaxed) {
+        if self.frame_available.swap(false, Ordering::Relaxed) {
             return Some(self.inner.read().unwrap().ptr);
         }
         None
