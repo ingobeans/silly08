@@ -1,11 +1,6 @@
 use base64::prelude::*;
 use deno_core::{GarbageCollected, cppgc::GcCell, error::AnyError, extension, v8};
-use std::{
-    rc::Rc,
-    sync::{LazyLock, OnceLock, atomic::AtomicBool},
-    thread::JoinHandle,
-    time::Duration,
-};
+use std::{rc::Rc, sync::atomic::AtomicBool, thread::JoinHandle, time::Duration};
 
 use crate::engine::js_glue::glue_ext;
 pub use crate::engine::{consts::*, types::*};
