@@ -248,8 +248,7 @@ globalThis.setTimeout = function (callback, time) {
 
         }
         if (poll.shouldSaveState) {
-            let saveState = Module.HEAPU8.slice(0, SAVED_MEMORY_SIZE);
-            send_save_state(saveState);
+            send_save_state(Module.HEAPU8);
         }
 
         callback();
