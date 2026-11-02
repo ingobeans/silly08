@@ -31,8 +31,8 @@ async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
         "let sample = `data:application/pkcs8;base64,{}`;",
         BASE64_STANDARD.encode(cart_data)
     );
-    let base = include_str!("../base.js").replacen("1", &SAVED_MEMORY_SIZE.to_string(), 1);
-    let file = include_str!("../edu.js");
+    let base = include_str!("base.js").replacen("1", &SAVED_MEMORY_SIZE.to_string(), 1);
+    let file = include_str!("edu.js");
     let code = format!("{cart}\n{base}\n{file}");
 
     let mod_id = js_runtime
