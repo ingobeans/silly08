@@ -39,6 +39,8 @@ i want to keep this project AI-free, thats all :)
 
 the project can both be built as a libretro-core sharedlibrary (sillycore), or as a standalone program that runs directly on your computer (sillyapp)
 
+you will need to fetch the edu runtime from the internet. there is a node.js helper script to do this, simply run `node fetch.js` and it should automatically download.
+
 to build you will need Rust installed.
 
 to run the standalone program you should be able to just do: 
