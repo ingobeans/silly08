@@ -1,0 +1,15 @@
+[package]
+name = "sillyengine"
+version = "0.4.17"
+edition = "2024"
+
+# This is the central runtime engine behind silly08.
+# Both sillycore and sillyapp depend on this.
+# It runs a deno runtime and has functions to run a Pico-8 cartridge in a new thread.
+# It also exposes several types in a global state which are used to interface with the i/o of the runtime.
+
+[dependencies]
+base64 = "0.23.1"
+deno_core = "0.413.0"
+tokio = { version = "1.54.1", features = ["full"] }
+macroquad = { version = "0.4.16" }

@@ -22,4 +22,4 @@ tasks:
       - task: device:sh
         vars:
           CMD: >-
-            cargo build --release
+            cargo build --release -p sillycore

@@ -3,7 +3,7 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
-use crate::engine::*;
+use crate::{SHOULD_TERMINATE, consts::*};
 
 struct ScreenDataManagerInner {
     pub ptr: *const u8,
@@ -100,7 +100,7 @@ impl SaveStateManager {
     /// Writes the internal state save to a destination memory buffer.
     /// Note: Only the memory part of the internal save is written.
     /// Intended for internal use.
-    pub fn load_internal_save_if_requested(&self, dest: &mut [u8]) {
+    pub(crate) fn load_internal_save_if_requested(&self, dest: &mut [u8]) {
         let mut lock = self.load_inner.lock().unwrap();
 
         if !lock.requested_load {
@@ -142,7 +142,7 @@ impl SaveStateManager {
     /// Updates internal state by writing a save state from memory data.
     /// Note: memory_data should not contain the header.
     /// Intended for internal use.
-    pub fn write_internal_save(&self, memory_data: &[u8]) {
+    pub(crate) fn write_internal_save(&self, memory_data: &[u8]) {
         let mut lock = self.save_inner.lock().unwrap();
 
         assert!(lock.requested_save);
@@ -222,7 +222,7 @@ pub struct KeyState {
     inner: Mutex<KeyStateInner>,
 }
 impl KeyState {
-    pub const fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             inner: Mutex::new(KeyStateInner::new()),
         }

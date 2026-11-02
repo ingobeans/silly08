@@ -1,8 +1,5 @@
 use macroquad::{miniquad::window::screen_size, prelude::*};
-
-use crate::engine::*;
-
-mod engine;
+use sillyengine::*;
 
 fn window() -> Conf {
     Conf {

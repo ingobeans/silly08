@@ -1,8 +1,8 @@
-use std::sync::atomic::Ordering;
+use std::{sync::atomic::Ordering, time::Duration};
 
-use deno_core::op2;
+use deno_core::{GarbageCollected, cppgc::GcCell, extension, op2, v8};
 
-use crate::engine::*;
+use crate::{KEY_STATE, SAVE_STATE_MANAGER, SCREEN_DATA_MANAGER, SHOULD_TERMINATE, consts::*};
 
 #[op2(fast)]
 fn send_save_state(#[buffer] data: &[u8]) {

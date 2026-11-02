@@ -429,16 +429,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e9c71c2167ca323c882b99918929403426e2373ea17242ff5653e0d5e1058be"
 
 [[package]]
-name = "engine"
-version = "0.4.17"
-dependencies = [
- "base64 0.23.1",
- "deno_core",
- "macroquad",
- "tokio",
-]
-
-[[package]]
 name = "equivalent"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1387,6 +1377,31 @@ checksum = "c4db69cba1110affc0e9f7bcd48bbf87b3f4fc7c61fc9155afd4c469eb3d6c1b"
 dependencies = [
  "errno",
  "libc",
+]
+
+[[package]]
+name = "sillyapp"
+version = "0.4.17"
+dependencies = [
+ "macroquad",
+ "sillyengine",
+]
+
+[[package]]
+name = "sillycore"
+version = "0.4.17"
+dependencies = [
+ "sillyengine",
+]
+
+[[package]]
+name = "sillyengine"
+version = "0.4.17"
+dependencies = [
+ "base64 0.23.1",
+ "deno_core",
+ "macroquad",
+ "tokio",
 ]
 
 [[package]]
