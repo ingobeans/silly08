@@ -37,18 +37,18 @@ i want to keep this project AI-free, thats all :)
 
 ## building
 
-the project can both be built as a libretro-core sharedlibrary (lib.rs), or as a standalone program that runs directly on your computer (main.rs)
+the project can both be built as a libretro-core sharedlibrary (sillycore), or as a standalone program that runs directly on your computer (sillyapp)
 
 to build you will need Rust installed.
 
 to run the standalone program you should be able to just do: 
 ```bash
-cargo run
+cargo run -p sillyapp
 ```
 
 and to build the sharedlibrary simply do:
 ```bash
-cargo build
+cargo build -p sillycore
 ```
 
 now, to build for 64bit ARM (like what the RG SP and most handhelds use), use the taskfile. run `task build:arm64`. you will need docker installed (easiest with docker desktop as it will handle dependency management for you)
