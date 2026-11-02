@@ -1,0 +1,25 @@
+version: "3"
+
+tasks:
+  # snippet from https://github.com/BrandonKowalski/slot/blob/main/taskfile.yml
+  device:sh:
+    desc: Run CMD on the box the device build wants, fetching one if this is not it
+    internal: true
+    requires:
+      vars: [CMD]
+    cmds:
+      - |
+        set -eu
+        if [ "$(uname -s)-$(uname -m)" = "Linux-aarch64" ]; then
+          sh -c '{{.CMD}}'
+        else
+          docker run --rm --platform linux/arm64 -v "$PWD":/src -w /src rust:1-bullseye sh -c '{{.CMD}}'
+        fi
+
+  build:arm64:
+    desc: Build silly08 for Aarch64
+    cmds:
+      - task: device:sh
+        vars:
+          CMD: >-
+            cargo build --release
