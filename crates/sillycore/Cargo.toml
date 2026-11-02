@@ -1,0 +1,13 @@
+[package]
+name = "sillycore"
+version = "0.4.17"
+edition = "2024"
+
+# "sillycore" is the libretro core crate.
+# It compiles to a sharedlibrary (.so) file
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+sillyengine = { path = "../sillyengine" }

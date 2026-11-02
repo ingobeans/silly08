@@ -1,9 +1,9 @@
 use base64::prelude::*;
-use deno_core::{GarbageCollected, cppgc::GcCell, error::AnyError, extension, v8};
-use std::{rc::Rc, sync::atomic::AtomicBool, thread::JoinHandle, time::Duration};
+pub use deno_core::error::AnyError;
+use std::{rc::Rc, sync::atomic::AtomicBool, thread::JoinHandle};
 
-use crate::engine::js_glue::glue_ext;
-pub use crate::engine::{consts::*, types::*};
+use crate::js_glue::glue_ext;
+pub use crate::{consts::*, types::*};
 
 mod consts;
 mod js_glue;
@@ -31,8 +31,8 @@ async fn run(cart_data: &[u8]) -> Result<(), AnyError> {
         "let sample = `data:application/pkcs8;base64,{}`;",
         BASE64_STANDARD.encode(cart_data)
     );
-    let base = include_str!("../base.js").replacen("1", &SAVED_MEMORY_SIZE.to_string(), 1);
-    let file = include_str!("../edu.js");
+    let base = include_str!("base.js").replacen("1", &SAVED_MEMORY_SIZE.to_string(), 1);
+    let file = include_str!("edu.js");
     let code = format!("{cart}\n{base}\n{file}");
 
     let mod_id = js_runtime

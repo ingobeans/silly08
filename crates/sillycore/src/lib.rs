@@ -1,5 +1,4 @@
 #![allow(clippy::missing_safety_doc)]
-mod engine;
 mod libretro;
 use std::{
     ffi::c_void,
@@ -8,10 +7,8 @@ use std::{
     thread::JoinHandle,
 };
 
-use deno_core::error::AnyError;
 use libretro::*;
-
-use crate::engine::*;
+use sillyengine::*;
 
 static JOIN_HANDLE: Mutex<Option<JoinHandle<Result<(), AnyError>>>> = Mutex::new(None);
 

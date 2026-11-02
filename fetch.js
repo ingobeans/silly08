@@ -4,7 +4,7 @@
     const fs = require('node:fs');
 
     let baseUrl = "https://www.pico-8-edu.com";
-    let outputFile = "edu.js";
+    let outputFile = "crates/engine/src/edu.js";
 
     let res = await fetch(baseUrl);
     let text = await res.text();

@@ -1,8 +1,5 @@
 use macroquad::{miniquad::window::screen_size, prelude::*};
-
-use crate::engine::*;
-
-mod engine;
+use sillyengine::*;
 
 fn window() -> Conf {
     Conf {
@@ -18,7 +15,7 @@ async fn main() {
     let data = if let Some(path) = std::env::args().nth(1) {
         std::fs::read(path).unwrap()
     } else {
-        include_bytes!("../test.p8").to_vec()
+        include_bytes!("test.p8").to_vec()
     };
 
     let handle = run_thread(data);
