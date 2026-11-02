@@ -1,10 +1,10 @@
 [package]
 name = "sillyapp"
-version = "0.4.17"
 edition = "2024"
 
 # "sillyapp" is a standalone program that runs the silly08 engine in a desktop window.
 # The first argument can be a path to a Pico-8 cartridge that will be ran.
+# This is mostly intended for development and testing purposes.
 
 [dependencies]
 sillyengine = { path = "../sillyengine" }

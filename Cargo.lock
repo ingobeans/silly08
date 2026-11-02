@@ -1381,7 +1381,7 @@ dependencies = [
 
 [[package]]
 name = "sillyapp"
-version = "0.4.17"
+version = "0.0.0"
 dependencies = [
  "macroquad",
  "sillyengine",
@@ -1389,7 +1389,7 @@ dependencies = [
 
 [[package]]
 name = "sillycore"
-version = "0.4.17"
+version = "0.1.0"
 dependencies = [
  "sillyengine",
 ]
